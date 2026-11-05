@@ -28,16 +28,17 @@
   function home(progress) {
     var mission = nextMission(progress);
     var replay = mission === 1 && done(progress, 1);
+    var doors = [1, 2, 3].map(function (id) {
+      var mark = done(progress, id) ? " ✓" : "";
+      return "<a class=\"door\" href=\"#/play/" + id + "/practice\"><b>" + id + "</b>" + mark + "</a>";
+    }).join("");
     return "<main id=\"main\" class=\"wrap\" tabindex=\"-1\">" +
-      "<header class=\"mast\"><div><h1>洪峰倒计时</h1><p class=\"zh\">把车开过河</p></div></header>" +
-      "<div class=\"hero\"><section class=\"sheet\">" +
-      heroMap() +
+      "<header class=\"mast\"><h1>洪峰倒计时</h1></header>" +
+      "<section class=\"sheet\">" + heroMap() +
       "<div class=\"actions\" style=\"margin-top:1rem\">" +
-      "<a class=\"button primary\" href=\"#/play/" + mission + "/mission\">" + (replay ? "再玩一次" : "开始") + "</a>" +
-      "<a class=\"button\" href=\"#/play/1/practice\">第 1 关</a>" +
-      "<a class=\"button\" href=\"#/play/2/practice\">第 2 关</a>" +
-      "<a class=\"button\" href=\"#/play/3/practice\">第 3 关</a>" +
-      "</div></section></div></main>";
+      "<a class=\"button primary\" href=\"#/play/" + mission + "/mission\">" + (replay ? "再来" : "开始") + "</a>" +
+      doors +
+      "</div></section></main>";
   }
 
   function heroMap() {
@@ -191,28 +192,65 @@
     var plan = Rules.blueprint(match);
     var stage = Rules.visualStage(match);
     var live = plan && Rules.activeVehicle(match) ? Rules.evaluateState(match, stage) : null;
-    var fresh = Rules.testIsFresh(match);
-    var tone = "ready";
-    if (stage === "flood" && match.phase !== "animating") tone = "flood";
-    else if (fresh) tone = "safe";
-    else if (match.lastTest && !match.lastTest.passed && match.lastTest.signature === Rules.currentSignature(match)) tone = "overload";
-    if (match.phase === "fail") tone = "overload";
-    if (match.phase === "report") tone = "safe";
+    var ended = match.phase === "report" || match.phase === "fail";
+    var overlay = "";
+    if (match.phase === "report") {
+      var more = match.mode === "mission" && match.levelId < 3;
+      overlay = "<div class=\"veil\"><button type=\"button\" class=\"primary\" data-action=\"finish\" data-focus=\"finish\">" + (more ? "下一关" : "完成") + "</button></div>";
+    }
+    if (match.phase === "fail") {
+      overlay = "<div class=\"veil\"><button type=\"button\" class=\"primary\" data-action=\"retry\" data-focus=\"retry\">再来</button></div>";
+    }
+    var toast = match.toast ? "<p class=\"toast\" role=\"status\">" + esc(match.toast) + "</p>" : "";
+    return "<main id=\"main\" class=\"stage\" tabindex=\"-1\">" +
+      hud(match, level, progress) +
+      "<div class=\"stage-map\">" +
+      map(match, level, plan, live, stage) +
+      toast + overlay +
+      "</div>" +
+      dock(match, level, ended) +
+      "</main>";
+  }
 
-    var titles = { 1: "送药", 2: "补给", 3: "涨水" };
-    var meters = level.turnMode === "clock"
-      ? meter("回合", match.turn) + meter("涨水", level.floodTurn) + meter("材料", match.materials)
-      : meter("材料", match.materials) + meter("回合", match.turnsLeft);
+  function hud(match, level, progress) {
+    var beams = "";
+    var i;
+    for (i = 0; i < match.startMaterials; i += 1) {
+      beams += "<i class=\"beam" + (i < match.materials ? "" : " spent") + "\"></i>";
+    }
+    var gauge = "";
+    if (level.turnMode === "clock") {
+      var span = Math.max(1, level.floodTurn - 1);
+      var filled = Math.max(0, Math.min(100, Math.round((match.turn - 1) / span * 100)));
+      gauge = "<span class=\"gauge\" aria-label=\"水位\"><i class=\"" + (match.turn >= level.floodTurn ? "warn" : "") + "\" style=\"width:" + filled + "%\"></i></span>";
+    } else {
+      var pips = "";
+      for (i = 0; i < level.budget; i += 1) {
+        pips += "<i" + (i < match.turnsLeft ? "" : " class=\"spent\"") + "></i>";
+      }
+      gauge = "<span class=\"pips\" aria-label=\"剩余次数\">" + pips + "</span>";
+    }
+    var other = "";
+    if (level.blueprints.length > 1 && Rules.blueprint(match) && match.phase === "play") {
+      var alt = level.blueprints.filter(function (item) { return item.id !== match.blueprintId; })[0];
+      other = "<button type=\"button\" class=\"icon-btn\" data-action=\"blueprint\" data-id=\"" + esc(alt.id) + "\" data-focus=\"swap\" aria-label=\"" + esc(shortName(alt.id, alt.name)) + "\">换</button>";
+    }
+    return "<div class=\"hud\"><a class=\"icon-btn\" href=\"#/\" aria-label=\"首页\">←</a>" +
+      "<span class=\"beams\" aria-label=\"木料\">" + beams + "</span>" +
+      gauge +
+      "<b class=\"level-pip\">" + level.id + "</b>" +
+      other +
+      "<button type=\"button\" class=\"icon-btn\" data-action=\"mute\" data-focus=\"mute\" aria-label=\"声音\">" + (progress.mute ? "静" : "声") + "</button></div>";
+  }
 
-    return "<main id=\"main\" tabindex=\"-1\">" +
-      "<header class=\"play-top\"><div><h1>第 " + level.id + " 关 · " + titles[level.id] + "</h1></div>" +
-      "<div class=\"meters\">" + meters +
-      "<button type=\"button\" data-action=\"mute\" data-focus=\"mute\">" + (progress.mute ? "声音关" : "声音开") + "</button>" +
-      "<a class=\"button quiet\" href=\"#/\">首页</a></div></header>" +
-      "<div class=\"layout\"><section>" + map(match, level, plan, live, stage) + timeline(match, level) + "</section>" +
-      "<section class=\"console\" data-tone=\"" + tone + "\" aria-label=\"操作\">" +
-      consoleBody(match, level, plan, live, fresh, stage) +
-      "</section></div></main>";
+  function dock(match, level, ended) {
+    if (ended || match.phase === "animating" || !level.split) return "";
+    if (!match.splitOpen) {
+      return "<div class=\"dock\"><button type=\"button\" class=\"icon-btn split\" data-action=\"split\" data-focus=\"split\" aria-label=\"拆成两辆\"><i></i><i></i></button></div>";
+    }
+    var sent = match.vehicles.some(function (vehicle) { return vehicle.status === "released"; });
+    if (sent) return "";
+    return "<div class=\"dock\"><button type=\"button\" class=\"icon-btn\" data-action=\"recombine\" data-focus=\"recombine\" aria-label=\"合回一辆\">合</button></div>";
   }
 
   function meter(label, value) {
@@ -352,21 +390,20 @@
     var slots = { west: 210, center: 370, east: 530 };
     var colors = { ok: "#2f6f4e", "at-capacity": "#c47b12", overload: "#9d2c22", none: "#8d7a55" };
     var sections = "";
-    ["west", "center", "east"].forEach(function (id) {
+    if (plan) ["west", "center", "east"].forEach(function (id) {
       var found = live ? live.sections.filter(function (section) { return section.id === id; })[0] : null;
       var fill = found ? colors[found.status] : colors.none;
-      var predict = level.requirePrediction && !match.tests.length;
-      if (predict && plan && match.phase === "play") {
-        sections += "<g class=\"" + (found && found.status === "overload" ? "deck-hot " : "") + "\" tabindex=\"0\" role=\"button\" data-action=\"predict\" data-id=\"" + id + "\" data-focus=\"map-predict-" + id + "\" aria-label=\"猜" + placeName(id) + "\">";
-      } else sections += "<g class=\"" + (found && found.status === "overload" ? "deck-hot" : "") + "\" style=\"pointer-events:none\">";
-      sections += "<rect x=\"" + deck[id][0] + "\" y=\"150\" width=\"" + (deck[id][1] - deck[id][0]) + "\" height=\"36\" fill=\"transparent\"></rect>";
-      sections += "<rect x=\"" + deck[id][0] + "\" y=\"168\" width=\"" + (deck[id][1] - deck[id][0]) + "\" height=\"18\" fill=\"" + fill + "\" stroke=\"#1b1712\" pointer-events=\"none\"></rect>";
-      if (found && found.status === "overload") {
-        sections += "<path class=\"hatch\" d=\"M" + (deck[id][0] + 10) + " 168 l16 18 M" + (deck[id][0] + 36) + " 168 l16 18 M" + (deck[id][0] + 62) + " 168 l16 18\" stroke=\"#f4ecdc\" stroke-width=\"2\"></path>";
+      var hot = found && found.status === "overload";
+      var width = deck[id][1] - deck[id][0];
+      sections += "<g class=\"" + (hot ? "deck-hot" : "") + "\" style=\"pointer-events:none\">";
+      sections += "<rect x=\"" + deck[id][0] + "\" y=\"168\" width=\"" + width + "\" height=\"18\" fill=\"" + fill + "\" stroke=\"#1b1712\"></rect>";
+      if (found && found.capacity > 0) {
+        var ratio = Math.min(1.35, found.demand / found.capacity);
+        var barH = Math.max(6, Math.round(ratio * 36));
+        sections += "<rect x=\"" + (deck[id][0] + 18) + "\" y=\"" + (164 - barH) + "\" width=\"" + (width - 36) + "\" height=\"" + barH + "\" fill=\"" + fill + "\" opacity=\"0.9\"></rect>";
       }
-      if (match.prediction === id) sections += "<circle cx=\"" + ((deck[id][0] + deck[id][1]) / 2) + "\" cy=\"150\" r=\"8\" fill=\"#ffb703\" stroke=\"#1b1712\"></circle>";
-      if (match.lastTest && match.lastTest.weakestId === id) {
-        sections += "<path d=\"M" + ((deck[id][0] + deck[id][1]) / 2) + " 214 l8 12 h-16 z\" fill=\"" + (Rules.testIsFresh(match) ? "#9d2c22" : "#66788a") + "\"></path>";
+      if (hot) {
+        sections += "<path class=\"hatch\" d=\"M" + (deck[id][0] + 10) + " 168 l16 18 M" + (deck[id][0] + 36) + " 168 l16 18 M" + (deck[id][0] + 62) + " 168 l16 18\" stroke=\"#f4ecdc\" stroke-width=\"2\"></path>";
       }
       sections += "</g>";
     });
@@ -390,9 +427,8 @@
         if (clickable) piers += "<rect x=\"" + (x - 8) + "\" y=\"160\" width=\"40\" height=\"110\" fill=\"transparent\"></rect>";
         piers += "<rect x=\"" + x + "\" y=\"186\" width=\"22\" height=\"70\" fill=\"" + (washed ? "#8aa0ad" : installed ? "#6b5436" : "none") + "\" stroke=\"#1b1712\" stroke-width=\"2\" stroke-dasharray=\"" + (support.temporary ? "4 3" : "0") + "\"></rect>";
         if (washed) piers += "<path d=\"M" + x + " 190 l22 62 M" + (x + 22) + " 190 l-22 62\" stroke=\"#9d2c22\" stroke-width=\"3\"></path>";
-        if (!support.builtIn) {
-          var tag = support.section === "west" ? "西" : support.section === "center" ? "中" : "东";
-          piers += "<text x=\"" + (x + 2) + "\" y=\"158\" font-size=\"16\" fill=\"#1b1712\" pointer-events=\"none\">" + tag + "</text>";
+        if (!support.builtIn && !installed && !washed && match.phase === "play") {
+          piers += "<text class=\"plus\" x=\"" + (x + 3) + "\" y=\"230\" font-size=\"32\" font-weight=\"700\" fill=\"#ffb703\" stroke=\"#1b1712\" stroke-width=\"1\" pointer-events=\"none\">+</text>";
         }
         piers += "</g>";
       });
@@ -401,31 +437,43 @@
     var trucks = "";
     var queue = 0;
     var park = 0;
+    var safe = !!(live && live.passed && match.phase === "play");
     match.vehicles.forEach(function (vehicle) {
       var crossing = match.phase === "animating" && match.releaseVehicleId === vehicle.id;
       if (crossing || (vehicle.status === "waiting" && vehicle.id === match.activeVehicleId)) {
-        trucks += truck(vehicle, 46, 136, crossing);
+        trucks += truck(vehicle, 46, 136, {
+          moving: crossing,
+          bump: match.bump === vehicle.id,
+          ready: safe && vehicle.id === match.activeVehicleId,
+          drive: match.phase === "play" && vehicle.status === "waiting"
+        });
       } else if (vehicle.status === "waiting") {
-        trucks += truck(vehicle, 16, 96 + queue * 30, false);
+        trucks += truck(vehicle, 12, 92 + queue * 34, { drive: match.phase === "play", small: true });
         queue += 1;
       } else {
-        trucks += truck(vehicle, 640, 96 + park * 30, false);
+        trucks += truck(vehicle, 640, 96 + park * 30, {});
         park += 1;
       }
     });
 
     var flood = stage === "flood";
+    var rise = 52;
+    if (level.floodTurn) {
+      var step = Math.max(0, Math.min(1, (match.turn - 1) / Math.max(1, level.floodTurn - 1)));
+      rise = Math.round(52 - step * 44);
+    }
     var planChoices = "";
     if (!plan && match.phase === "play") {
-      planChoices = "<div class=\"actions\" style=\"margin-top:0.6rem\">" + level.blueprints.map(function (item) {
-        return "<button type=\"button\" class=\"primary\" data-action=\"blueprint\" data-id=\"" + esc(item.id) + "\" data-focus=\"map-plan-" + esc(item.id) + "\">" + esc(shortName(item.id, item.name)) + "</button>";
+      planChoices = "<div class=\"choices\">" + level.blueprints.map(function (item) {
+        return "<button type=\"button\" class=\"choice-card\" data-action=\"blueprint\" data-id=\"" + esc(item.id) + "\" data-focus=\"map-plan-" + esc(item.id) + "\" aria-label=\"" + esc(shortName(item.id, item.name)) + "\">" +
+          miniBridge(item.id) + "</button>";
       }).join("") + "</div>";
     }
-    return "<div class=\"map-frame\"><svg class=\"scene" + (flood ? " is-flood" : "") + "\" viewBox=\"0 0 720 340\" role=\"group\" aria-label=\"河和桥\">" +
+    return "<div class=\"map-frame\"><svg class=\"scene" + (flood || match.toast === "水要涨" ? " is-flood" : "") + "\" viewBox=\"0 0 720 340\" role=\"group\" aria-label=\"河和桥\">" +
       "<rect width=\"720\" height=\"320\" fill=\"#efe4cf\"></rect>" +
       "<path d=\"M0 70 L140 48 L250 78 L390 40 L520 72 L720 46 L720 0 L0 0 Z\" fill=\"#d5dfd2\"></path>" +
       "<g class=\"rain\">" + rainLines(7) + "</g>" +
-      "<g class=\"river" + (flood ? " is-high" : "") + "\">" +
+      "<g class=\"river" + (match.toast === "水要涨" ? " surge" : "") + "\" style=\"--rise:" + rise + "px\">" +
       "<rect class=\"water\" x=\"140\" y=\"150\" width=\"470\" height=\"130\" fill=\"" + (flood ? "#0e3f52" : "#1f6f86") + "\"></rect>" +
       "<path class=\"waves\" d=\"M140 175 H610 M140 200 H610 M140 225 H610\" fill=\"none\" stroke=\"#d7eef5\" stroke-width=\"3\" stroke-dasharray=\"18 14\"></path></g>" +
       "<rect x=\"0\" y=\"186\" width=\"150\" height=\"22\" fill=\"#8d7a55\"></rect>" +
@@ -434,19 +482,35 @@
       "</svg>" + planChoices + "</div>";
   }
 
-  function truck(vehicle, x, y, moving) {
+  function miniBridge(id) {
+    var deck = id === "steel" ? "#5c6b76" : "#8d7a55";
+    var pier = id === "steel" ? "#2c3338" : "#6b5436";
+    return "<svg viewBox=\"0 0 160 70\" aria-hidden=\"true\"><rect width=\"160\" height=\"70\" fill=\"#efe4cf\"></rect>" +
+      "<rect x=\"20\" y=\"36\" width=\"120\" height=\"8\" fill=\"" + deck + "\" stroke=\"#1b1712\"></rect>" +
+      "<rect x=\"36\" y=\"44\" width=\"10\" height=\"18\" fill=\"" + pier + "\"></rect>" +
+      "<rect x=\"74\" y=\"44\" width=\"10\" height=\"18\" fill=\"" + pier + "\"></rect>" +
+      "<rect x=\"112\" y=\"44\" width=\"10\" height=\"18\" fill=\"" + pier + "\"></rect></svg>";
+  }
+
+  function truck(vehicle, x, y, opts) {
+    opts = opts || {};
     var paint = "#f7f3ea";
     if (vehicle.id === "heavy" || vehicle.id.indexOf("light") === 0) paint = "#8a6232";
     if (vehicle.id === "medic") paint = "#d5e4cf";
     if (vehicle.id === "cart") paint = "#4d6a4a";
     if (vehicle.id === "bus") paint = "#e6c15a";
-    return "<g class=\"truck-wrap\" transform=\"translate(" + x + " " + y + ")\"><g class=\"truck" + (moving ? " is-moving" : "") + "\">" +
+    var klass = "truck" + (opts.moving ? " is-moving" : "") + (opts.bump ? " is-bump" : "") + (opts.ready ? " is-ready" : "") + (opts.small ? " is-small" : "");
+    var open = opts.drive
+      ? "<g tabindex=\"0\" role=\"button\" data-action=\"drive\" data-id=\"" + esc(vehicle.id) + "\" data-focus=\"truck-" + esc(vehicle.id) + "\" aria-label=\"" + esc(shortName(vehicle.id, vehicle.name)) + "\">"
+      : "<g style=\"pointer-events:none\">";
+    return "<g class=\"truck-wrap\" transform=\"translate(" + x + " " + y + ")\">" + open + "<g class=\"" + klass + "\">" +
+      (opts.drive ? "<rect x=\"-8\" y=\"-8\" width=\"62\" height=\"42\" fill=\"transparent\"></rect>" : "") +
       "<rect width=\"46\" height=\"20\" fill=\"" + paint + "\" stroke=\"#1b1712\"></rect>" +
       "<rect x=\"30\" y=\"4\" width=\"16\" height=\"14\" fill=\"#d9d3c6\" stroke=\"#1b1712\"></rect>" +
       "<g class=\"wheel\"><circle cx=\"12\" cy=\"22\" r=\"4\" fill=\"#1b1712\"></circle></g>" +
       "<g class=\"wheel\"><circle cx=\"34\" cy=\"22\" r=\"4\" fill=\"#1b1712\"></circle></g>" +
       (vehicle.id === "med-van" || vehicle.id === "medic" ? "<path d=\"M16 10 h6 M19 7 v6\" stroke=\"#9d2c22\" stroke-width=\"2\"></path>" : "") +
-      "</g></g>";
+      "</g></g></g>";
   }
 
   function render(ctx) {
