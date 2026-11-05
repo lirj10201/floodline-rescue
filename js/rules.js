@@ -258,7 +258,9 @@
       pendingSupportId: null,
       log: [],
       answers: {},
-      message: "Read the briefing, then choose your first action.",
+      message: level.blueprints.length > 1
+        ? "First click: choose Timber trestle or Steel girder. Those buttons are at the top of the panel."
+        : "Use the buttons at the top of the panel. Grey buttons still explain why they are waiting.",
       messageTone: "info",
       caption: "Radio briefing is on screen. Sound plays only after you press Play radio.",
       releaseVehicleId: null,
@@ -606,12 +608,6 @@
       return fail("That test no longer matches this vehicle and bridge. Test again.");
     }
     if (!next.lastTest.passed) return fail("This vehicle has not passed the current test.");
-    if (level.requirePrediction && (!next.answers.gate || next.answers.gate.forSignature !== currentSignature(next))) {
-      return fail("Answer the test question before you send the van.");
-    }
-    if (level.requirePrediction && !next.answers.gate.correct) {
-      return fail("The explanation does not match this test yet.");
-    }
     var window = Model.actionWindow(next.turn, level.releaseCost, level.floodTurn, level.deadlineTurn);
     if (level.turnMode === "clock" && window.straddles) {
       return fail("Release blocked. The crossing would use turns " + window.start + "–" + window.end + ", and the flood at the start of turn " + level.floodTurn + " would change the supports while the " + vehicle.name + " is still on the bridge. The current test cannot authorize that crossing.");

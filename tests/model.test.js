@@ -125,12 +125,6 @@ check("level 1 timber fails at the east support until the east shoe", function (
   state = play(state, function (s) { return Rules.runTest(s); });
   assert.strictEqual(state.lastTest.passed, true);
   assert.strictEqual(state.lastTest.sections[2].capacity, 10);
-  var early = mustFail(state, function (s) { return Rules.release(s); });
-  assert.ok(early.indexOf("Answer") !== -1);
-  var wrong = play(state, function (s) { return Rules.submitAnswer(s, "gate", "center"); });
-  assert.strictEqual(wrong.answers.gate.correct, false);
-  state = play(wrong, function (s) { return Rules.submitAnswer(s, "gate", "match"); });
-  assert.strictEqual(state.answers.gate.correct, true);
   state = play(state, function (s) { return Rules.release(s); });
   assert.strictEqual(state.phase, "animating");
   var again = mustFail(state, function (s) { return Rules.release(s); });
@@ -151,7 +145,6 @@ check("level 1 steel plan passes the same van without a kit", function () {
   assert.strictEqual(state.lastTest.passed, true);
   assert.strictEqual(state.materials, 2);
   assert.ok(state.predictionNote.indexOf("agrees") !== -1);
-  state = play(state, function (s) { return Rules.submitAnswer(s, "gate", "match"); });
   state = play(state, function (s) { return Rules.release(s); });
   state = play(state, function (s) { return Rules.finishRelease(s); });
   assert.strictEqual(state.phase, "report");
@@ -164,7 +157,6 @@ check("changing the bridge expires a passing test", function () {
   state = play(state, function (s) { return Rules.predict(s, "east"); });
   state = play(state, function (s) { return Rules.install(s, "east-shoe"); });
   state = play(state, function (s) { return Rules.runTest(s); });
-  state = play(state, function (s) { return Rules.submitAnswer(s, "gate", "match"); });
   assert.strictEqual(Rules.testIsFresh(state), true);
   var installed = play(state, function (s) { return Rules.install(s, "center-clamp"); });
   assert.strictEqual(Rules.testIsFresh(installed), false);

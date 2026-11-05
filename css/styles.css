@@ -103,10 +103,11 @@ button.quiet {
   color: var(--text);
 }
 
-button:disabled {
-  cursor: not-allowed;
+button:disabled,
+button.is-blocked {
+  cursor: pointer;
   border-color: #66788a;
-  color: #9aafbf;
+  color: #d5dee6;
   background: #243443;
 }
 
@@ -295,7 +296,10 @@ button:disabled {
 
 button.primary small { color: #4d3b0a; }
 
-button:disabled small { color: #b7c6d1; }
+button:disabled small,
+button.is-blocked small { color: #d5dee6; }
+
+summary { cursor: pointer; font-weight: 700; }
 
 table { width: 100%; border-collapse: collapse; margin: 0.3rem 0 0; }
 
@@ -364,15 +368,61 @@ th, td {
 svg [role="button"]:focus-visible { outline: 3px solid #1b1712; outline-offset: 2px; }
 
 .truck.is-moving { animation: cross 2.2s linear forwards; }
+.truck.is-moving .wheel { animation: spin 0.35s linear infinite; transform-box: fill-box; transform-origin: center; }
+
+.waves { animation: flow 2.4s linear infinite; }
+.river { transform: translateY(52px); transition: transform 0.7s ease; }
+.river.is-high { transform: translateY(8px); }
+.drop { animation: fall 1.1s linear infinite; }
+.drop:nth-child(2n) { animation-delay: 0.4s; }
+.drop:nth-child(3n) { animation-delay: 0.7s; }
+.deck-hot { animation: shake 0.45s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.pier { animation: pop 0.35s ease; transform-box: fill-box; transform-origin: center bottom; }
+.chips { display: flex; gap: 0.4rem; margin: 0 0 0.8rem; }
+.chip {
+  flex: 1;
+  text-align: center;
+  padding: 0.45rem 0.2rem;
+  background: #0d1720;
+  border: 1px solid var(--line);
+  font-weight: 700;
+}
+.chip.bad { background: var(--bad-bg); color: var(--bad); animation: pulse 1s ease infinite; }
+.stack button { font-size: 1.05rem; }
 
 @keyframes cross {
   from { transform: translateX(0); }
   to { transform: translateX(520px); }
 }
+@keyframes flow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -64; }
+}
+@keyframes fall {
+  from { transform: translateY(-12px); opacity: 0; }
+  30% { opacity: 1; }
+  to { transform: translateY(70px); opacity: 0; }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pop {
+  from { transform: scaleY(0.2); }
+  to { transform: scaleY(1); }
+}
+@keyframes pulse {
+  50% { filter: brightness(1.25); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .truck.is-moving { animation: none; transform: translateX(520px); }
-  .water { animation: none !important; }
+  .water, .waves, .drop, .deck-hot, .pier, .chip.bad, .wheel { animation: none !important; }
+  .river { transition: none; }
 }
 
 @media (max-width: 900px) {

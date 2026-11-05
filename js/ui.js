@@ -28,51 +28,40 @@
   function home(progress) {
     var mission = nextMission(progress);
     var replay = mission === 1 && done(progress, 1);
-    var levels = Levels.list().map(function (level) {
-      var state = done(progress, level.id) ? "done" : "open";
-      return "<li><span data-state=\"" + state + "\">Level " + level.id + " · " + esc(level.code) + "</span> — " +
-        (done(progress, level.id) ? "mission complete" : "not complete in mission mode") + "</li>";
-    }).join("");
     return "<main id=\"main\" class=\"wrap\" tabindex=\"-1\">" +
-      "<header class=\"mast\"><div><p class=\"kicker\">Field engineering desk</p><h1>Floodline Rescue</h1><p class=\"zh\">洪峰倒计时</p></div></header>" +
+      "<header class=\"mast\"><div><h1>洪峰倒计时</h1><p class=\"zh\">把车开过河</p></div></header>" +
       "<div class=\"hero\"><section class=\"sheet\">" +
       heroMap() +
-      "<p class=\"story\">After the storm, the bridge to the village is gone. You are the rescue engineer. Send medicine, move supplies, and evacuate residents before the flood takes the temporary supports.</p>" +
-      "<p>This is a simplified bridge model for class. You will compare load and capacity, then spend kits and action turns on purpose.</p>" +
-      "<ul class=\"progress-list\">" + levels + "</ul>" +
       "<div class=\"actions\" style=\"margin-top:1rem\">" +
-      "<a class=\"button primary\" href=\"#/play/" + mission + "/mission\">" + (replay ? "Replay mission" : "Start Mission") + "</a>" +
-      "<button type=\"button\" data-action=\"clear-progress\">Clear saved progress</button>" +
-      "</div></section><section class=\"cards\">" +
-      "<article class=\"card\"><h2>Practice Levels</h2><p>Open any mission for a demonstration or a retest. Practice does not unlock the full mission.</p>" +
-      "<div class=\"actions\">" +
-      "<a class=\"button\" href=\"#/play/1/practice\">Level 1</a>" +
-      "<a class=\"button\" href=\"#/play/2/practice\">Level 2</a>" +
-      "<a class=\"button\" href=\"#/play/3/practice\">Level 3</a>" +
-      "</div></article>" +
-      "<article class=\"card\"><h2>About the Course</h2><p>STEM topic, branch, description, and the two learning objectives this desk assesses.</p><a class=\"button\" href=\"#/course\">Open course page</a></article>" +
-      "<article class=\"card\"><h2>Facilitator Guide</h2><p>Pair roles, when to stop and talk, what evidence to keep, and three debrief questions.</p><a class=\"button\" href=\"#/guide\">Open facilitator guide</a></article>" +
-      "</section></div></main>";
+      "<a class=\"button primary\" href=\"#/play/" + mission + "/mission\">" + (replay ? "再玩一次" : "开始") + "</a>" +
+      "<a class=\"button\" href=\"#/play/1/practice\">第 1 关</a>" +
+      "<a class=\"button\" href=\"#/play/2/practice\">第 2 关</a>" +
+      "<a class=\"button\" href=\"#/play/3/practice\">第 3 关</a>" +
+      "</div></section></div></main>";
   }
 
   function heroMap() {
-    return "<div class=\"map-frame\"><svg viewBox=\"0 0 720 280\" role=\"img\" aria-label=\"A broken mountain crossing. The west bank has a rescue truck. The east bank has a clinic. Floodwater sits in the gap.\">" +
+    return "<div class=\"map-frame\"><svg class=\"scene\" viewBox=\"0 0 720 280\" role=\"img\" aria-label=\"河、断桥、一辆救援车\">" +
       "<rect width=\"720\" height=\"280\" fill=\"#efe4cf\"></rect>" +
       "<path d=\"M0 90 L120 70 L200 100 L250 60 L360 90 L480 50 L600 86 L720 64 L720 0 L0 0 Z\" fill=\"#c8d3c0\"></path>" +
-      "<rect x=\"250\" y=\"150\" width=\"230\" height=\"90\" fill=\"#1f6f86\"></rect>" +
-      "<path d=\"M250 168 C300 160 360 180 420 166 C460 158 490 172 480 168\" fill=\"none\" stroke=\"#d7eef5\" stroke-width=\"3\"></path>" +
+      "<g class=\"rain\">" + rainLines(6) + "</g>" +
+      "<g class=\"pond\"><rect x=\"250\" y=\"150\" width=\"230\" height=\"90\" fill=\"#1f6f86\"></rect>" +
+      "<path class=\"waves\" d=\"M250 168 H480 M250 188 H480 M250 208 H480\" fill=\"none\" stroke=\"#d7eef5\" stroke-width=\"3\" stroke-dasharray=\"16 12\"></path></g>" +
       "<rect x=\"0\" y=\"150\" width=\"250\" height=\"24\" fill=\"#8d7a55\"></rect>" +
       "<rect x=\"480\" y=\"150\" width=\"240\" height=\"24\" fill=\"#8d7a55\"></rect>" +
-      "<path d=\"M230 162 H270 M450 162 H490\" stroke=\"#9d2c22\" stroke-width=\"4\"></path>" +
       "<rect x=\"70\" y=\"126\" width=\"54\" height=\"24\" fill=\"#f7f3ea\" stroke=\"#1b1712\"></rect>" +
       "<rect x=\"108\" y=\"132\" width=\"22\" height=\"16\" fill=\"#d8d2c4\" stroke=\"#1b1712\"></rect>" +
-      "<path d=\"M88 138 h8 M92 134 v8\" stroke=\"#9d2c22\" stroke-width=\"2\"></path>" +
       "<rect x=\"560\" y=\"118\" width=\"46\" height=\"32\" fill=\"#f7f1e4\" stroke=\"#1b1712\"></rect>" +
-      "<path d=\"M572 134 h8 M576 130 v8\" stroke=\"#9d2c22\" stroke-width=\"2\"></path>" +
-      "<text x=\"24\" y=\"40\" fill=\"#1b1712\" font-size=\"20\">West depot</text>" +
-      "<text x=\"560\" y=\"40\" fill=\"#1b1712\" font-size=\"20\">Clinic village</text>" +
-      "<text x=\"300\" y=\"210\" fill=\"#f4ecdc\" font-size=\"16\">flood gap</text>" +
       "</svg></div>";
+  }
+
+  function rainLines(rows) {
+    var lines = "";
+    var i;
+    for (i = 0; i < rows; i += 1) {
+      lines += "<line class=\"drop\" x1=\"" + (40 + i * 110) + "\" y1=\"8\" x2=\"" + (28 + i * 110) + "\" y2=\"28\" stroke=\"#7aa0b4\" stroke-width=\"2\"></line>";
+    }
+    return lines;
   }
 
   function course() {
@@ -129,74 +118,72 @@
   }
 
   function locked(id) {
-    return "<main id=\"main\" class=\"prose\" tabindex=\"-1\"><article class=\"sheet\"><h1>Level " + id + " is locked</h1>" +
-      "<p>The full mission unlocks in order. Finish the previous mission from Start Mission. Practice Levels can open this mission without changing that lock.</p>" +
-      "<div class=\"actions\"><a class=\"button primary\" href=\"#/\">Back to desk</a><a class=\"button\" href=\"#/play/" + id + "/practice\">Practice this level</a></div></article></main>";
+    return "<main id=\"main\" class=\"prose\" tabindex=\"-1\"><article class=\"sheet\"><h1>第 " + id + " 关还没开</h1>" +
+      "<p>先打完上一关。</p>" +
+      "<div class=\"actions\"><a class=\"button primary\" href=\"#/\">回首页</a><a class=\"button\" href=\"#/play/" + id + "/practice\">直接试这一关</a></div></article></main>";
   }
 
-  function supportLine(support) {
-    var bits = [];
-    ["west", "center", "east"].forEach(function (id) {
-      if (support.capacity[id]) bits.push(id + " +" + support.capacity[id]);
-    });
-    var life = support.temporary ? "Temporary. Fails at the flood." : "Permanent.";
-    var cost = support.builtIn ? "Already built." : support.material + " kit(s), " + support.turns + " action turn(s).";
-    return esc(support.name) + ": " + bits.join(", ") + ". " + life + " " + cost;
+  var SHORT = {
+    timber: "木桥",
+    steel: "钢桥",
+    "center-clamp": "加固中段",
+    "east-shoe": "加固东段",
+    "center-post": "加粗中段",
+    "west-knee": "加固西段",
+    "temp-brace": "临时撑",
+    "center-tower": "永久塔",
+    "east-plate": "东边钢板",
+    "med-van": "药车",
+    heavy: "重车",
+    "light-a": "轻车 A",
+    "light-b": "轻车 B",
+    medic: "吉普",
+    cart: "补给车",
+    bus: "大巴"
+  };
+
+  function shortName(id, fallback) {
+    return SHORT[id] || fallback;
   }
 
-  function statusWord(status) {
-    if (status === "overload") return "Overload";
-    if (status === "at-capacity") return "At capacity — pass";
-    return "Within capacity";
-  }
-
-  function tableRows(sections) {
-    return sections.map(function (section) {
-      var klass = section.status === "overload" ? "bad" : section.status === "at-capacity" ? "warn" : "ok";
-      return "<tr><td>" + esc(section.name) + "</td><td>" + section.demand + "</td><td>" + section.capacity + "</td><td>" +
-        esc(Model.percent(section.demand, section.capacity)) + "</td><td><span class=\"tag " + klass + "\">" + statusWord(section.status) + "</span></td></tr>";
-    }).join("");
-  }
-
-  function readingTable(title, sections) {
-    return "<div class=\"reading\"><h2>" + esc(title) + "</h2><table><thead><tr><th>Section</th><th>Demand</th><th>Capacity</th><th>Utilization</th><th>Result</th></tr></thead><tbody>" +
-      tableRows(sections) + "</tbody></table></div>";
+  function placeName(id) {
+    if (id === "west") return "西段";
+    if (id === "center") return "中段";
+    return "东段";
   }
 
   function button(spec) {
-    var disabled = spec.disabled ? " disabled" : "";
-    return "<button type=\"button\" data-focus=\"" + esc(spec.focus) + "\" data-action=\"" + esc(spec.action) + "\" data-id=\"" + esc(spec.id || "") + "\"" + disabled + ">" +
-      esc(spec.label) + "<small>" + esc(spec.detail) + "</small></button>";
+    var blocked = spec.disabled ? " data-blocked=\"1\" aria-disabled=\"true\" class=\"is-blocked\"" : "";
+    var detail = spec.detail ? "<small>" + esc(spec.detail) + "</small>" : "";
+    return "<button type=\"button\" data-focus=\"" + esc(spec.focus) + "\" data-action=\"" + esc(spec.action) + "\" data-id=\"" + esc(spec.id || "") + "\"" + blocked + ">" +
+      esc(spec.label) + detail + "</button>";
   }
 
-  function questionsBlock(state) {
-    var questions = Rules.buildQuestions(state);
-    if (!questions.length) return "";
-    return questions.map(function (question) {
-      var saved = state.answers[question.id];
-      var current = !saved || !saved.forSignature || saved.forSignature === Rules.currentSignature(state) || state.phase === "report";
-      var note = "";
-      if (saved && current && saved.correct) note = "<p>Recorded. This answer matches the test.</p>";
-      if (saved && current && !saved.correct) note = "<p>That answer does not match. Read the message above, then choose again.</p>";
-      var options = question.options.map(function (option) {
-        var checked = saved && current && saved.optionId === option.id ? " checked" : "";
-        return "<label><input type=\"radio\" name=\"q-" + esc(question.id) + "\" value=\"" + esc(option.id) + "\"" + checked + "> " + esc(option.text) + "</label>";
-      }).join("");
-      return "<fieldset class=\"question\"><legend>" + esc(question.prompt) + "</legend>" + options +
-        "<button type=\"button\" data-action=\"answer\" data-qid=\"" + esc(question.id) + "\" data-focus=\"answer-" + esc(question.id) + "\">Check answer</button>" +
-        note + "</fieldset>";
-    }).join("");
+  function payHint(match, turns, materials) {
+    var preview = Rules.preview(match, turns, materials);
+    if (preview.indexOf("Blocked") !== -1) {
+      if (preview.indexOf("kit") !== -1) return "材料不够";
+      return "来不及";
+    }
+    var bits = [];
+    if (materials) bits.push(materials + " 材料");
+    if (turns) bits.push(turns + " 回合");
+    return bits.join(" · ");
   }
 
-  function bars(test, title) {
-    if (!test) return "";
-    var rows = test.sections.map(function (section) {
-      var max = Math.max(section.demand, section.capacity, 1);
-      return "<div><div class=\"bar-label\"><span>" + esc(section.name) + "</span><span>" + section.demand + " demand / " + section.capacity + " capacity</span></div>" +
-        "<div class=\"track\"><div class=\"demand\" style=\"width:" + Math.round(section.demand / max * 100) + "%\"></div></div>" +
-        "<div class=\"track\"><div class=\"capacity\" style=\"width:" + Math.round(section.capacity / max * 100) + "%\"></div></div></div>";
-    }).join("");
-    return "<div class=\"reading\"><h2>" + esc(title) + "</h2><p>Upper bar: demand. Lower bar: capacity. A demand bar longer than the capacity bar is an overload.</p><div class=\"bars\">" + rows + "</div></div>";
+  function lineStatus(match, live) {
+    if (match.phase === "animating") return "车正在过桥";
+    if (match.phase === "fail") return "来不及了";
+    if (match.phase === "report") return "送到了";
+    if (!Rules.blueprint(match)) return "先选一座桥";
+    var level = Levels.getLevel(match.levelId);
+    if (level.requirePrediction && !match.tests.length && !match.prediction) return "点桥面，猜最容易断的一段";
+    if (live && live.weakest.demand > live.weakest.capacity) {
+      return placeName(live.weakest.id) + " 撑不住：" + live.weakest.demand + " > " + live.weakest.capacity;
+    }
+    if (Rules.testIsFresh(match)) return "能过，可以发车";
+    if (match.lastTest) return "桥变了，再测一次";
+    return "测一下，再发车";
   }
 
   function play(match, progress) {
@@ -212,17 +199,18 @@
     if (match.phase === "fail") tone = "overload";
     if (match.phase === "report") tone = "safe";
 
+    var titles = { 1: "送药", 2: "补给", 3: "涨水" };
     var meters = level.turnMode === "clock"
-      ? meter("Turn", match.turn) + meter("Flood", "Turn " + level.floodTurn) + meter("Close", "Turn " + level.deadlineTurn) + meter("Kits", match.materials)
-      : meter("Kits", match.materials) + meter("Action turns", match.turnsLeft);
+      ? meter("回合", match.turn) + meter("涨水", level.floodTurn) + meter("材料", match.materials)
+      : meter("材料", match.materials) + meter("回合", match.turnsLeft);
 
     return "<main id=\"main\" tabindex=\"-1\">" +
-      "<header class=\"play-top\"><div><p class=\"kicker\">" + esc(match.mode) + " · " + esc(level.difficulty) + "</p><h1>Level " + level.id + " · " + esc(level.code) + "</h1><p>" + esc(level.mission) + "</p></div>" +
+      "<header class=\"play-top\"><div><h1>第 " + level.id + " 关 · " + titles[level.id] + "</h1></div>" +
       "<div class=\"meters\">" + meters +
-      "<button type=\"button\" data-action=\"mute\" data-focus=\"mute\">" + (progress.mute ? "Sound off" : "Sound on") + "</button>" +
-      "<a class=\"button quiet\" href=\"#/\">Desk</a></div></header>" +
+      "<button type=\"button\" data-action=\"mute\" data-focus=\"mute\">" + (progress.mute ? "声音关" : "声音开") + "</button>" +
+      "<a class=\"button quiet\" href=\"#/\">首页</a></div></header>" +
       "<div class=\"layout\"><section>" + map(match, level, plan, live, stage) + timeline(match, level) + "</section>" +
-      "<section class=\"console\" data-tone=\"" + tone + "\" aria-label=\"Rescue console\">" +
+      "<section class=\"console\" data-tone=\"" + tone + "\" aria-label=\"操作\">" +
       consoleBody(match, level, plan, live, fresh, stage) +
       "</section></div></main>";
   }
@@ -231,80 +219,71 @@
     return "<div class=\"meter\"><span>" + esc(label) + "</span><b>" + esc(value) + "</b></div>";
   }
 
-  function consoleBody(match, level, plan, live, fresh, stage) {
-    var html = "<div class=\"radio\"><h2>Radio briefing</h2><p>" + esc(level.radio) + "</p>" +
-      "<button type=\"button\" data-action=\"radio\" data-focus=\"radio\">Play radio briefing</button>" +
-      "<p class=\"caption\" id=\"sound-caption\">Sound caption: " + esc(match.caption) + "</p></div>";
-    html += "<div class=\"status\" data-tone=\"" + esc(match.messageTone) + "\" role=\"" + (match.messageTone === "bad" ? "alert" : "status") + "\">" + esc(match.message) + "</div>";
-    if (match.phase === "fail") {
-      html += "<div class=\"reading\"><h2>Why the mission failed</h2><p>" + esc(match.failReason) + "</p></div>";
-    }
-    html += "<h2>Public rules</h2><ul class=\"rules\">" + level.brief.map(function (line) {
-      return "<li>" + esc(line) + "</li>";
-    }).join("") + "</ul>";
-    if (level.coop) html += "<div class=\"callout\"><h2>Pair stop</h2><p>" + esc(level.coop) + "</p></div>";
+  function consoleBody(match, level, plan, live) {
+    var tone = live && live.weakest.demand > live.weakest.capacity ? "bad" : (Rules.testIsFresh(match) ? "good" : "info");
+    var html = "<div class=\"status\" data-tone=\"" + tone + "\" role=\"status\">" + esc(lineStatus(match, live)) + "</div>";
+    html += chips(live);
     if (match.phase === "play" || match.phase === "animating") html += controls(match, level, plan);
-    html += readings(match, live, fresh, stage);
-    if (match.predictionNote) html += "<div class=\"reading\"><h2>Prediction check</h2><p>" + esc(match.predictionNote) + "</p></div>";
-    html += questionsBlock(match);
-    if (match.phase === "report") html += reportExtra(match, level);
-    if (match.phase === "fail") html += "<button type=\"button\" class=\"primary\" data-action=\"retry\" data-focus=\"retry\">Retry level</button>";
-    if (match.phase === "animating") html += "<p>Crossing in progress. Controls stay locked so this action cannot be charged twice.</p>";
-    html += "<p class=\"foot-note\">Tab reaches every control. Diagram supports also have labeled buttons. Animations follow the reduced-motion setting on this device.</p>";
+    if (match.phase === "report") {
+      html += "<button type=\"button\" class=\"primary\" data-action=\"finish\" data-focus=\"finish\">回首页</button>";
+    }
+    if (match.phase === "fail") {
+      html += "<button type=\"button\" class=\"primary\" data-action=\"retry\" data-focus=\"retry\">再来一次</button>";
+    }
     return html;
   }
 
+  function chips(live) {
+    if (!live) return "";
+    return "<div class=\"chips\">" + live.sections.map(function (section) {
+      var bad = section.demand > section.capacity;
+      return "<span class=\"chip" + (bad ? " bad" : "") + "\">" + placeName(section.id) + " " + section.demand + "/" + section.capacity + "</span>";
+    }).join("") + "</div>";
+  }
+
   function controls(match, level, plan) {
-    var html = "<h2>Actions</h2><div class=\"stack\">";
-    if (level.blueprints.length > 1) {
+    var html = "<div class=\"stack\">";
+    if (level.blueprints.length > 1 && plan) {
       level.blueprints.forEach(function (item) {
-        var selected = match.blueprintId === item.id;
-        var detail = selected ? "This is the working plan. " + item.detail : item.detail;
-        if (!selected && match.blueprintPicks > 0) detail += " Switching costs 1 action turn and returns kits from the current plan.";
-        if (!selected && match.blueprintPicks === 0) detail += " The first plan is free.";
+        if (match.blueprintId === item.id) return;
         html += button({
           focus: "plan-" + item.id,
           action: "blueprint",
           id: item.id,
-          label: (selected ? "Using " : "Choose ") + item.name,
-          detail: detail,
+          label: "换成 " + shortName(item.id, item.name),
+          detail: match.blueprintPicks > 0 ? "1 回合" : "",
           disabled: match.phase !== "play"
         });
       });
     }
-    match.vehicles.forEach(function (vehicle) {
-      var demand = "West " + vehicle.demands.west + ", center " + vehicle.demands.center + ", east " + vehicle.demands.east + ".";
-      html += button({
-        focus: "vehicle-" + vehicle.id,
-        action: "vehicle",
-        id: vehicle.id,
-        label: (match.activeVehicleId === vehicle.id ? "Selected: " : "Select ") + vehicle.name + (vehicle.status === "released" ? " (across)" : ""),
-        detail: vehicle.note + " " + demand,
-        disabled: match.phase !== "play" || vehicle.status !== "waiting"
+    var waiting = match.vehicles.filter(function (vehicle) { return vehicle.status === "waiting"; });
+    if (waiting.length > 1) {
+      match.vehicles.forEach(function (vehicle) {
+        html += button({
+          focus: "vehicle-" + vehicle.id,
+          action: "vehicle",
+          id: vehicle.id,
+          label: (match.activeVehicleId === vehicle.id ? "当前 " : "") + shortName(vehicle.id, vehicle.name) + (vehicle.status === "released" ? " 已过" : ""),
+          detail: "",
+          disabled: match.phase !== "play" || vehicle.status !== "waiting"
+        });
       });
-    });
+    }
     if (plan) {
-      html += "<div class=\"reading\"><h2>Supports on this plan</h2><ul class=\"plain-list\">" + plan.supports.map(function (support) {
-        var onBridge = support.builtIn || match.installed.indexOf(support.id) !== -1;
-        var washed = support.temporary && Rules.currentStage(match) === "flood";
-        return "<li>" + supportLine(support) + (washed ? " Washed out." : onBridge ? " In place." : " Not installed.") + "</li>";
-      }).join("") + "</ul></div>";
       plan.supports.forEach(function (support) {
         if (support.builtIn) return;
         var installed = match.installed.indexOf(support.id) !== -1;
-        var action = installed ? "remove" : "install";
-        var turns = support.turns;
-        var materials = installed ? 0 : support.material;
-        var detail = Rules.preview(match, turns, materials) + " " + (support.detail || "");
-        if (installed) detail = "Remove returns " + support.material + " kit(s). " + detail;
         var floodBlocked = !installed && support.temporary && Rules.currentStage(match) === "flood";
+        var materials = installed ? 0 : support.material;
+        var hint = floodBlocked ? "水来了" : payHint(match, support.turns, materials);
+        if (installed && !floodBlocked) hint = "拆掉退回 " + support.material;
         html += button({
-          focus: action + "-" + support.id,
-          action: action,
+          focus: (installed ? "remove" : "install") + "-" + support.id,
+          action: installed ? "remove" : "install",
           id: support.id,
-          label: (installed ? "Remove " : "Install ") + support.name,
-          detail: floodBlocked ? "Blocked: the flood has removed temporary works. " + detail : detail,
-          disabled: match.phase !== "play" || floodBlocked || Rules.preview(match, turns, materials).indexOf("Blocked") !== -1
+          label: (installed ? "拆掉 " : "装上 ") + shortName(support.id, support.name),
+          detail: hint,
+          disabled: match.phase !== "play" || floodBlocked || Rules.preview(match, support.turns, materials).indexOf("Blocked") !== -1
         });
       });
     }
@@ -312,8 +291,8 @@
       html += button({
         focus: "split",
         action: "split",
-        label: "Split into two trucks",
-        detail: Rules.preview(match, 1, 0) + " Supply A and Supply B will each demand west 4, center 8, east 4.",
+        label: "分成两辆轻车",
+        detail: payHint(match, 1, 0),
         disabled: match.phase !== "play" || Rules.preview(match, 1, 0).indexOf("Blocked") !== -1
       });
     }
@@ -322,8 +301,8 @@
       html += button({
         focus: "recombine",
         action: "recombine",
-        label: "Recombine into one heavy truck",
-        detail: Rules.preview(match, 1, 0) + " Center demand returns to 14. Unavailable after a split truck has crossed.",
+        label: "合成一辆重车",
+        detail: sent ? "已经开走了" : payHint(match, 1, 0),
         disabled: match.phase !== "play" || sent || Rules.preview(match, 1, 0).indexOf("Blocked") !== -1
       });
     }
@@ -331,92 +310,29 @@
     html += button({
       focus: "test",
       action: "test",
-      label: "Test selected vehicle",
-      detail: Rules.preview(match, level.testCost, 0) + (level.testCost === 0 ? " Retests on this mission are free." : "") + (needPrediction ? " Mark a predicted weak point first." : ""),
+      label: "测试",
+      detail: needPrediction ? "先点桥面" : payHint(match, level.testCost, 0),
       disabled: match.phase !== "play" || !plan || needPrediction || Rules.preview(match, level.testCost, 0).indexOf("Blocked") !== -1
     });
-    if (level.requirePrediction && !match.tests.length) {
-      level.sections.forEach(function (section) {
-        html += button({
-          focus: "predict-" + section.id,
-          action: "predict",
-          id: section.id,
-          label: (match.prediction === section.id ? "Predicted: " : "Predict ") + section.name,
-          detail: "Free. Required before the first test. You can change it until that test.",
-          disabled: match.phase !== "play" || !plan
-        });
-      });
-    }
     var releaseDetail = Rules.preview(match, level.releaseCost, 0);
-    var releaseDisabled = match.phase !== "play" || !Rules.testIsFresh(match) || releaseDetail.indexOf("Blocked") !== -1;
-    if (level.requirePrediction) {
-      var answer = match.answers.gate;
-      var answered = answer && answer.correct && answer.forSignature === Rules.currentSignature(match);
-      if (!answered) releaseDisabled = true;
-      releaseDetail += answered ? " The explanation is recorded." : " Answer the matching explanation first.";
-    }
-    if (!Rules.testIsFresh(match)) releaseDetail += " A current passing test is required.";
+    var releaseHint = !Rules.testIsFresh(match) ? "先测过" : payHint(match, level.releaseCost, 0);
     html += button({
       focus: "release",
       action: "release",
-      label: "Release " + (Rules.activeVehicle(match) ? Rules.activeVehicle(match).name : "vehicle"),
-      detail: releaseDetail,
-      disabled: releaseDisabled
+      label: "发车",
+      detail: releaseHint,
+      disabled: match.phase !== "play" || !Rules.testIsFresh(match) || releaseDetail.indexOf("Blocked") !== -1
     });
     if (level.waitCost) {
       html += button({
         focus: "wait",
         action: "wait",
-        label: "Wait one turn",
-        detail: Rules.preview(match, level.waitCost, 0) + " Use this to let the flood arrive without building.",
+        label: "等一回合",
+        detail: payHint(match, level.waitCost, 0),
         disabled: match.phase !== "play" || Rules.preview(match, level.waitCost, 0).indexOf("Blocked") !== -1
       });
     }
     html += "</div>";
-    return html;
-  }
-
-  function readings(match, live, fresh, stage) {
-    var html = "";
-    if (live) {
-      var title = fresh ? "Official test — current bridge" : "Plan rating — not a release test yet";
-      if (stage === "flood") title = (fresh ? "Official post-flood test" : "Ratings after the flood");
-      if (match.phase === "report") title = "Final ratings";
-      if (match.phase === "fail") title = "Ratings when the run stopped";
-      html += readingTable(title, live.sections);
-    }
-    if (match.lastTest && !fresh) {
-      html += "<div class=\"expired\"><h2>Expired test</h2><p>" + esc(match.lastTest.vehicleName) + " at turn " + match.lastTest.turn + ", stage " + match.lastTest.stage + ". " + esc(match.lastTest.note) + "</p></div>";
-      html += readingTable("Expired readings", match.lastTest.sections);
-    }
-    return html;
-  }
-
-  function reportExtra(match, level) {
-    var failed = null;
-    var passed = null;
-    match.tests.forEach(function (test) {
-      if (!test.passed && !failed) failed = test;
-      if (test.passed) passed = test;
-    });
-    var html = "<div class=\"reading\"><h2>Action report</h2><ul class=\"plain-list\">";
-    html += "<li>Result: all waiting vehicles have crossed.</li>";
-    if (match.prediction) html += "<li>Prediction: " + esc(match.prediction) + " on the " + esc(match.predictionBlueprint || "selected") + " plan.</li>";
-    html += "<li>Kits left: " + match.materials + " of " + match.startMaterials + ". Action turns spent: " + match.turnsSpent + ".</li>";
-    if (level.turnMode === "clock") html += "<li>Turn counter ended at " + match.turn + ". Flood " + (match.floodApplied ? "had arrived." : "had not arrived.") + "</li>";
-    html += "</ul></div>";
-    if (Rules.debrief(match)) html += "<div class=\"callout\"><h2>Route comparison</h2><p>" + esc(Rules.debrief(match)) + "</p></div>";
-    html += bars(failed, "Before the revision");
-    html += bars(passed, passed && failed ? "After the revision" : "Passing test");
-    if (match.log.length) {
-      html += "<h2>Action log</h2><ol class=\"log\">" + match.log.map(function (entry) {
-        return "<li>" + esc(entry.label) + " — kits " + entry.materials + (level.turnMode === "clock" ? ", counter " + entry.clock : ", turns left " + entry.turnsLeft) + "</li>";
-      }).join("") + "</ol>";
-    }
-    var ready = Rules.questionsComplete(match);
-    html += "<button type=\"button\" class=\"primary\" data-action=\"finish\" data-focus=\"finish\"" + (ready ? "" : " disabled") + ">" +
-      (match.mode === "mission" ? "Save mission and return" : "Finish practice") +
-      "<small>" + (ready ? "Both checks match this run." : "Answer the report questions first. A wrong answer can be tried again.") + "</small></button>";
     return html;
   }
 
@@ -425,11 +341,10 @@
     var cells = "";
     var turn = 1;
     for (turn = 1; turn <= 15; turn += 1) {
-      var now = String(match.phase === "animating" ? match.turn - 1 : match.turn) === String(turn);
       cells += "<li data-now=\"" + (match.turn === turn) + "\" data-flood=\"" + (turn === level.floodTurn) + "\" data-past=\"" + (turn < match.turn) + "\">" +
-        turn + (turn === level.floodTurn ? " flood" : "") + "</li>";
+        turn + (turn === level.floodTurn ? " 水" : "") + "</li>";
     }
-    return "<div class=\"sheet\" style=\"margin-top:0.6rem\"><h2>Turn line</h2><p>The flood arrives at the start of turn 5. Evacuation closes at the start of turn 16. Highlighted cell: current turn.</p><ol class=\"timeline\">" + cells + "</ol></div>";
+    return "<ol class=\"timeline\" aria-label=\"回合\">" + cells + "</ol>";
   }
 
   function map(match, level, plan, live, stage) {
@@ -441,13 +356,13 @@
       var found = live ? live.sections.filter(function (section) { return section.id === id; })[0] : null;
       var fill = found ? colors[found.status] : colors.none;
       var predict = level.requirePrediction && !match.tests.length;
-      var label = (level.sections.filter(function (section) { return section.id === id; })[0] || {}).name || id;
-      if (predict && plan) {
-        sections += "<g tabindex=\"0\" role=\"button\" data-action=\"predict\" data-id=\"" + id + "\" data-focus=\"map-predict-" + id + "\" aria-label=\"Predict " + esc(label) + " as the weak point\">";
-      } else sections += "<g>";
-      sections += "<rect x=\"" + deck[id][0] + "\" y=\"168\" width=\"" + (deck[id][1] - deck[id][0]) + "\" height=\"18\" fill=\"" + fill + "\" stroke=\"#1b1712\"></rect>";
+      if (predict && plan && match.phase === "play") {
+        sections += "<g class=\"" + (found && found.status === "overload" ? "deck-hot " : "") + "\" tabindex=\"0\" role=\"button\" data-action=\"predict\" data-id=\"" + id + "\" data-focus=\"map-predict-" + id + "\" aria-label=\"猜" + placeName(id) + "\">";
+      } else sections += "<g class=\"" + (found && found.status === "overload" ? "deck-hot" : "") + "\" style=\"pointer-events:none\">";
+      sections += "<rect x=\"" + deck[id][0] + "\" y=\"150\" width=\"" + (deck[id][1] - deck[id][0]) + "\" height=\"36\" fill=\"transparent\"></rect>";
+      sections += "<rect x=\"" + deck[id][0] + "\" y=\"168\" width=\"" + (deck[id][1] - deck[id][0]) + "\" height=\"18\" fill=\"" + fill + "\" stroke=\"#1b1712\" pointer-events=\"none\"></rect>";
       if (found && found.status === "overload") {
-        sections += "<path d=\"M" + (deck[id][0] + 10) + " 168 l16 18 M" + (deck[id][0] + 36) + " 168 l16 18 M" + (deck[id][0] + 62) + " 168 l16 18\" stroke=\"#f4ecdc\" stroke-width=\"2\"></path>";
+        sections += "<path class=\"hatch\" d=\"M" + (deck[id][0] + 10) + " 168 l16 18 M" + (deck[id][0] + 36) + " 168 l16 18 M" + (deck[id][0] + 62) + " 168 l16 18\" stroke=\"#f4ecdc\" stroke-width=\"2\"></path>";
       }
       if (match.prediction === id) sections += "<circle cx=\"" + ((deck[id][0] + deck[id][1]) / 2) + "\" cy=\"150\" r=\"8\" fill=\"#ffb703\" stroke=\"#1b1712\"></circle>";
       if (match.lastTest && match.lastTest.weakestId === id) {
@@ -470,14 +385,14 @@
         var clickable = !support.builtIn && match.phase === "play";
         var action = installed && !support.builtIn ? "remove" : "install";
         if (clickable) {
-          piers += "<g tabindex=\"0\" role=\"button\" data-action=\"" + action + "\" data-id=\"" + esc(support.id) + "\" data-focus=\"map-" + esc(support.id) + "\" aria-label=\"" + esc((installed ? "Remove " : "Install ") + support.name) + "\">";
-        } else piers += "<g>";
+          piers += "<g class=\"pier\" tabindex=\"0\" role=\"button\" data-action=\"" + action + "\" data-id=\"" + esc(support.id) + "\" data-focus=\"map-" + esc(support.id) + "\" aria-label=\"" + esc((installed ? "拆掉" : "装上") + shortName(support.id, support.name)) + "\">";
+        } else piers += "<g class=\"pier\" style=\"pointer-events:none\">";
         if (clickable) piers += "<rect x=\"" + (x - 8) + "\" y=\"160\" width=\"40\" height=\"110\" fill=\"transparent\"></rect>";
         piers += "<rect x=\"" + x + "\" y=\"186\" width=\"22\" height=\"70\" fill=\"" + (washed ? "#8aa0ad" : installed ? "#6b5436" : "none") + "\" stroke=\"#1b1712\" stroke-width=\"2\" stroke-dasharray=\"" + (support.temporary ? "4 3" : "0") + "\"></rect>";
         if (washed) piers += "<path d=\"M" + x + " 190 l22 62 M" + (x + 22) + " 190 l-22 62\" stroke=\"#9d2c22\" stroke-width=\"3\"></path>";
         if (!support.builtIn) {
-          var mapWord = support.shortName.split(" ").slice(-1)[0];
-          piers += "<text x=\"" + (x - 8) + "\" y=\"312\" font-size=\"16\" fill=\"#1b1712\">" + esc(mapWord) + "</text>";
+          var tag = support.section === "west" ? "西" : support.section === "center" ? "中" : "东";
+          piers += "<text x=\"" + (x + 2) + "\" y=\"158\" font-size=\"16\" fill=\"#1b1712\" pointer-events=\"none\">" + tag + "</text>";
         }
         piers += "</g>";
       });
@@ -500,21 +415,23 @@
     });
 
     var flood = stage === "flood";
-    var waterY = flood ? 150 : 210;
-    var waterH = flood ? 130 : 70;
-    var title = "River crossing, " + (plan ? plan.name : "no plan selected") + (flood ? ", flood stage" : ", before the flood") + ".";
-    return "<div class=\"map-frame\"><svg viewBox=\"0 0 720 340\" role=\"img\" aria-label=\"" + esc(title) + "\">" +
+    var planChoices = "";
+    if (!plan && match.phase === "play") {
+      planChoices = "<div class=\"actions\" style=\"margin-top:0.6rem\">" + level.blueprints.map(function (item) {
+        return "<button type=\"button\" class=\"primary\" data-action=\"blueprint\" data-id=\"" + esc(item.id) + "\" data-focus=\"map-plan-" + esc(item.id) + "\">" + esc(shortName(item.id, item.name)) + "</button>";
+      }).join("") + "</div>";
+    }
+    return "<div class=\"map-frame\"><svg class=\"scene" + (flood ? " is-flood" : "") + "\" viewBox=\"0 0 720 340\" role=\"group\" aria-label=\"河和桥\">" +
       "<rect width=\"720\" height=\"320\" fill=\"#efe4cf\"></rect>" +
       "<path d=\"M0 70 L140 48 L250 78 L390 40 L520 72 L720 46 L720 0 L0 0 Z\" fill=\"#d5dfd2\"></path>" +
+      "<g class=\"rain\">" + rainLines(7) + "</g>" +
+      "<g class=\"river" + (flood ? " is-high" : "") + "\">" +
+      "<rect class=\"water\" x=\"140\" y=\"150\" width=\"470\" height=\"130\" fill=\"" + (flood ? "#0e3f52" : "#1f6f86") + "\"></rect>" +
+      "<path class=\"waves\" d=\"M140 175 H610 M140 200 H610 M140 225 H610\" fill=\"none\" stroke=\"#d7eef5\" stroke-width=\"3\" stroke-dasharray=\"18 14\"></path></g>" +
       "<rect x=\"0\" y=\"186\" width=\"150\" height=\"22\" fill=\"#8d7a55\"></rect>" +
       "<rect x=\"610\" y=\"186\" width=\"110\" height=\"22\" fill=\"#8d7a55\"></rect>" +
-      "<rect class=\"water\" x=\"140\" y=\"" + waterY + "\" width=\"470\" height=\"" + waterH + "\" fill=\"" + (flood ? "#0e3f52" : "#1f6f86") + "\"></rect>" +
-      "<text x=\"24\" y=\"36\" fill=\"#1b1712\" font-size=\"18\">Depot</text>" +
-      "<text x=\"560\" y=\"36\" fill=\"#1b1712\" font-size=\"18\">Village</text>" +
-      (flood ? "<text x=\"250\" y=\"120\" fill=\"#0e3f52\" font-size=\"16\">Flood — temporary supports out</text>" : "<text x=\"168\" y=\"248\" fill=\"#f4ecdc\" font-size=\"16\">Channel</text>") +
-      (level.floodTurn ? "<text x=\"160\" y=\"132\" fill=\"#0e3f52\" font-size=\"16\">Flood line: start of turn " + level.floodTurn + "</text>" : "") +
       sections + piers + trucks +
-      "</svg><p class=\"foot-note\" style=\"color:#1b1712\">Gold dot: your prediction. Triangle: busiest section on the latest test. Dashed pier: temporary, and it fails at the flood. A pier you can click is repeated as a labeled button.</p></div>";
+      "</svg>" + planChoices + "</div>";
   }
 
   function truck(vehicle, x, y, moving) {
@@ -523,10 +440,11 @@
     if (vehicle.id === "medic") paint = "#d5e4cf";
     if (vehicle.id === "cart") paint = "#4d6a4a";
     if (vehicle.id === "bus") paint = "#e6c15a";
-    return "<g transform=\"translate(" + x + " " + y + ")\"><g class=\"truck" + (moving ? " is-moving" : "") + "\">" +
+    return "<g class=\"truck-wrap\" transform=\"translate(" + x + " " + y + ")\"><g class=\"truck" + (moving ? " is-moving" : "") + "\">" +
       "<rect width=\"46\" height=\"20\" fill=\"" + paint + "\" stroke=\"#1b1712\"></rect>" +
       "<rect x=\"30\" y=\"4\" width=\"16\" height=\"14\" fill=\"#d9d3c6\" stroke=\"#1b1712\"></rect>" +
-      "<circle cx=\"12\" cy=\"22\" r=\"4\" fill=\"#1b1712\"></circle><circle cx=\"34\" cy=\"22\" r=\"4\" fill=\"#1b1712\"></circle>" +
+      "<g class=\"wheel\"><circle cx=\"12\" cy=\"22\" r=\"4\" fill=\"#1b1712\"></circle></g>" +
+      "<g class=\"wheel\"><circle cx=\"34\" cy=\"22\" r=\"4\" fill=\"#1b1712\"></circle></g>" +
       (vehicle.id === "med-van" || vehicle.id === "medic" ? "<path d=\"M16 10 h6 M19 7 v6\" stroke=\"#9d2c22\" stroke-width=\"2\"></path>" : "") +
       "</g></g>";
   }

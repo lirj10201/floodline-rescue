@@ -71,9 +71,18 @@
   }
 
   function onActivate(el) {
-    if (!el || el.hasAttribute("disabled") || busy) return;
+    if (!el || busy) return;
     var action = el.getAttribute("data-action");
     if (!action) return;
+    if (el.getAttribute("data-blocked") === "1") {
+      if (!match) return;
+      var reason = el.querySelector("small");
+      match.message = reason ? reason.textContent : "That action is waiting for an earlier step.";
+      match.messageTone = "bad";
+      match.caption = "Alert tone. " + match.message;
+      render();
+      return;
+    }
     busy = true;
     try {
       if (action === "clear-progress") {
@@ -104,8 +113,7 @@
         return;
       }
       if (action === "finish") {
-        if (!FloodRules.questionsComplete(match)) return;
-        if (match.mode === "mission") FloodSave.complete(match.levelId);
+        if (match && match.mode === "mission") FloodSave.complete(match.levelId);
         window.location.hash = "#/";
         return;
       }
@@ -188,15 +196,31 @@
     render();
   }
 
+  function actionFrom(target) {
+    var node = target;
+    if (node && node.nodeType !== 1) node = node.parentElement;
+    if (!node || !node.closest) return null;
+    return node.closest("[data-action]");
+  }
+
   document.getElementById("app").addEventListener("click", function (event) {
-    var el = event.target.closest("[data-action]");
+    var el = actionFrom(event.target);
     if (!el) return;
-    event.preventDefault();
-    onActivate(el);
+    if (el.tagName !== "A") event.preventDefault();
+    try {
+      onActivate(el);
+    } catch (error) {
+      busy = false;
+      if (match) {
+        match.message = "That click did not finish. " + error.message;
+        match.messageTone = "bad";
+        render();
+      }
+    }
   });
 
   document.getElementById("app").addEventListener("keydown", function (event) {
-    var el = event.target.closest("[data-action]");
+    var el = actionFrom(event.target);
     if (!el || el.tagName === "BUTTON" || el.tagName === "A") return;
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
