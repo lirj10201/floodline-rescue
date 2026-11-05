@@ -25,24 +25,92 @@
     return !!(progress.done[id] || progress.done[String(id)]);
   }
 
-  function home(progress) {
+  var scenes = [
+    { art: "storm", lines: ["The storm has passed.", "The bridge to the village is gone."] },
+    { art: "clinic", lines: ["The clinic is across the river.", "The medicine van is still on this side."] },
+    { art: "you", lines: ["You have to get the van across.", "The water is still rising."], go: "#/play/1/mission", cta: "Start level 1" },
+    { art: "cargo", lines: ["The medicine is across.", "The next truck is too heavy for the center span."], go: "#/play/2/mission", cta: "Start level 2" },
+    { art: "flood", lines: ["The flood will take the wood.", "You choose which stone supports stay."], go: "#/play/3/mission", cta: "Design the bridge" }
+  ];
+
+  function titleScreen(progress, about) {
     var mission = nextMission(progress);
-    var replay = mission === 1 && done(progress, 1);
-    var doors = [1, 2, 3].map(function (id) {
-      var mark = done(progress, id) ? " ✓" : "";
-      return "<a class=\"door\" href=\"#/play/" + id + "/practice\"><b>" + id + "</b>" + mark + "</a>";
-    }).join("");
-    return "<main id=\"main\" class=\"wrap\" tabindex=\"-1\">" +
-      "<header class=\"mast\"><h1>洪峰倒计时</h1></header>" +
-      "<section class=\"sheet\">" + heroMap() +
-      "<div class=\"actions\" style=\"margin-top:1rem\">" +
-      "<a class=\"button primary\" href=\"#/play/" + mission + "/mission\">" + (replay ? "再来" : "开始") + "</a>" +
-      doors +
-      "</div></section></main>";
+    var started = done(progress, 1) || done(progress, 2) || done(progress, 3);
+    return "<main id=\"main\" class=\"boot\" tabindex=\"-1\">" +
+      "<div class=\"boot-card\">" +
+      heroMap() +
+      "<h1>Floodline Rescue</h1>" +
+      "<p class=\"boot-line\">Get every vehicle across. A span holds only when its load is within its strength.</p>" +
+      "<button type=\"button\" class=\"primary boot-go\" data-action=\"begin\" data-focus=\"begin\">Start</button>" +
+      "<button type=\"button\" class=\"quiet boot-about\" data-action=\"about\" data-focus=\"about\">About this game</button>" +
+      (started ? "<a class=\"boot-continue\" href=\"#/play/" + mission + "/mission\">Continue</a>" : "") +
+      "</div>" +
+      (about ? aboutDialog() : "") +
+      "</main>";
+  }
+
+  function aboutDialog() {
+    var cards = [
+      { title: "STEM", body: "Engineering. This is a bridge-structures game about load and strength." },
+      { title: "Goal", body: "Get every vehicle across the river." },
+      { title: "Rules", body: "A span holds when its load is less than or equal to its strength. A material adds strength only on the span where you place it." },
+      { title: "Learn", body: "Find the weak span. See that a fix helps only where you put it, and choose what still stands after the flood." }
+    ];
+    return "<div class=\"brief-pop\" data-action=\"close-about\">" +
+      "<div class=\"brief-sheet\" role=\"dialog\" aria-modal=\"true\" aria-labelledby=\"brief-title\" data-action=\"keep-about\">" +
+      "<h2 id=\"brief-title\">About this game</h2>" +
+      "<div class=\"brief-cards\">" + cards.map(function (card) {
+        return "<article class=\"brief-card\"><b>" + card.title + "</b><p>" + card.body + "</p></article>";
+      }).join("") + "</div>" +
+      "<button type=\"button\" class=\"primary\" data-action=\"close-about\" data-focus=\"close-about\">Close</button>" +
+      "</div></div>";
+  }
+
+  function storyScreen(step) {
+    var scene = scenes[step] || scenes[0];
+    var last = scene.go;
+    var nextHash = last || ("#/story/" + (step + 1));
+    var label = scene.cta || "Continue";
+    var dots = "";
+    if (step < 3) {
+      dots = [0, 1, 2].map(function (index) {
+        return "<i" + (index === step ? " class=\"on\"" : "") + "></i>";
+      }).join("");
+    }
+    return "<main id=\"main\" class=\"tale\" tabindex=\"-1\">" +
+      "<div class=\"tale-card\">" +
+      sceneArt(scene.art) +
+      "<div class=\"tale-copy\">" +
+      scene.lines.map(function (line) { return "<p>" + esc(line) + "</p>"; }).join("") +
+      "</div>" +
+      "<a class=\"button primary tale-next\" href=\"" + nextHash + "\">" + esc(label) + "</a>" +
+      "<div class=\"dots\" aria-hidden=\"true\">" + dots + "</div>" +
+      "</div></main>";
+  }
+
+  function sceneArt(kind) {
+    var sky = kind === "flood" ? "#1a3a4a" : kind === "storm" ? "#24343c" : "#6e8b96";
+    var rain = kind === "you" ? rainLines(4) : rainLines(8);
+    var water = kind === "flood" ? 118 : kind === "cargo" ? 150 : 156;
+    var truck = kind === "clinic" || kind === "you" || kind === "cargo";
+    var truckColor = kind === "cargo" ? "#8a6232" : "#f7f3ea";
+    var clinic = kind !== "storm";
+    return "<div class=\"map-frame tale-art\"><svg class=\"scene\" viewBox=\"0 0 720 280\" role=\"img\" aria-label=\"Story scene\">" +
+      "<rect width=\"720\" height=\"280\" fill=\"" + sky + "\"></rect>" +
+      "<path d=\"M0 100 L140 70 L260 108 L400 64 L560 96 L720 70 L720 0 L0 0 Z\" fill=\"#c5d0c4\" opacity=\"0.85\"></path>" +
+      "<g class=\"rain\">" + rain + "</g>" +
+      "<rect x=\"250\" y=\"" + water + "\" width=\"230\" height=\"" + (260 - water) + "\" fill=\"#1f6f86\"></rect>" +
+      "<path class=\"waves\" d=\"M250 " + (water + 16) + " H480 M250 " + (water + 36) + " H480\" fill=\"none\" stroke=\"#d7eef5\" stroke-width=\"3\" stroke-dasharray=\"16 12\"></path>" +
+      "<rect x=\"0\" y=\"168\" width=\"250\" height=\"22\" fill=\"#8d7a55\"></rect>" +
+      "<rect x=\"480\" y=\"168\" width=\"240\" height=\"22\" fill=\"#8d7a55\"></rect>" +
+      (truck ? "<g transform=\"translate(70 140)\"><rect width=\"54\" height=\"22\" fill=\"" + truckColor + "\" stroke=\"#1b1712\"></rect><circle cx=\"12\" cy=\"24\" r=\"4\" fill=\"#1b1712\"></circle><circle cx=\"40\" cy=\"24\" r=\"4\" fill=\"#1b1712\"></circle></g>" : "") +
+      (kind === "you" ? "<g transform=\"translate(36 132)\"><circle cx=\"10\" cy=\"8\" r=\"6\" fill=\"#f4ecdc\" stroke=\"#1b1712\"></circle><rect x=\"4\" y=\"16\" width=\"12\" height=\"18\" fill=\"#ffb703\" stroke=\"#1b1712\"></rect></g>" : "") +
+      (clinic ? "<g transform=\"translate(560 124)\"><rect width=\"48\" height=\"44\" fill=\"#f7f1e4\" stroke=\"#1b1712\"></rect><path d=\"M78 18 h10 M83 13 v10\" transform=\"translate(-70 -4)\" stroke=\"#9d2c22\" stroke-width=\"3\"></path></g>" : "") +
+      "</svg></div>";
   }
 
   function heroMap() {
-    return "<div class=\"map-frame\"><svg class=\"scene\" viewBox=\"0 0 720 280\" role=\"img\" aria-label=\"河、断桥、一辆救援车\">" +
+    return "<div class=\"map-frame\"><svg class=\"scene\" viewBox=\"0 0 720 280\" role=\"img\" aria-label=\"A river gap between a rescue van and a clinic\">" +
       "<rect width=\"720\" height=\"280\" fill=\"#efe4cf\"></rect>" +
       "<path d=\"M0 90 L120 70 L200 100 L250 60 L360 90 L480 50 L600 86 L720 64 L720 0 L0 0 Z\" fill=\"#c8d3c0\"></path>" +
       "<g class=\"rain\">" + rainLines(6) + "</g>" +
@@ -119,28 +187,29 @@
   }
 
   function locked(id) {
-    return "<main id=\"main\" class=\"prose\" tabindex=\"-1\"><article class=\"sheet\"><h1>第 " + id + " 关还没开</h1>" +
-      "<p>先打完上一关。</p>" +
-      "<div class=\"actions\"><a class=\"button primary\" href=\"#/\">回首页</a><a class=\"button\" href=\"#/play/" + id + "/practice\">直接试这一关</a></div></article></main>";
+    return "<main id=\"main\" class=\"prose\" tabindex=\"-1\"><article class=\"sheet\"><h1>Level " + id + " is locked</h1>" +
+      "<p>Finish the previous level first. Practice still opens this level.</p>" +
+      "<div class=\"actions\"><a class=\"button primary\" href=\"#/\">Title</a><a class=\"button\" href=\"#/play/" + id + "/practice\">Practice this level</a></div></article></main>";
   }
 
   var SHORT = {
-    timber: "木桥",
-    steel: "钢桥",
-    "center-clamp": "加固中段",
-    "east-shoe": "加固东段",
-    "center-post": "加粗中段",
-    "west-knee": "加固西段",
-    "temp-brace": "临时撑",
-    "center-tower": "永久塔",
-    "east-plate": "东边钢板",
-    "med-van": "药车",
-    heavy: "重车",
-    "light-a": "轻车 A",
-    "light-b": "轻车 B",
-    medic: "吉普",
-    cart: "补给车",
-    bus: "大巴"
+    timber: "Timber bridge",
+    steel: "Steel bridge",
+    "center-clamp": "center post",
+    "east-shoe": "east support",
+    "center-post": "center post",
+    "west-knee": "west brace",
+    "temp-bent": "wood post",
+    "temp-brace": "wood brace",
+    "center-tower": "stone tower",
+    "east-plate": "east stone",
+    "med-van": "medicine van",
+    heavy: "heavy truck",
+    "light-a": "light truck A",
+    "light-b": "light truck B",
+    medic: "medic jeep",
+    cart: "supply cart",
+    bus: "evac bus"
   };
 
   function shortName(id, fallback) {
@@ -148,9 +217,9 @@
   }
 
   function placeName(id) {
-    if (id === "west") return "西段";
-    if (id === "center") return "中段";
-    return "东段";
+    if (id === "west") return "West";
+    if (id === "center") return "Center";
+    return "East";
   }
 
   function button(spec) {
@@ -163,12 +232,12 @@
   function payHint(match, turns, materials) {
     var preview = Rules.preview(match, turns, materials);
     if (preview.indexOf("Blocked") !== -1) {
-      if (preview.indexOf("kit") !== -1) return "材料不够";
-      return "来不及";
+      if (preview.indexOf("kit") !== -1) return "Not enough materials";
+      return "No moves left";
     }
     var bits = [];
-    if (materials) bits.push(materials + " 材料");
-    if (turns) bits.push(turns + " 回合");
+    if (materials) bits.push(materials + " material");
+    if (turns) bits.push(turns + " move");
     return bits.join(" · ");
   }
 
@@ -187,6 +256,65 @@
     return "测一下，再发车";
   }
 
+  function guideLine(match, level, plan, live) {
+    if (match.phase === "animating") return "The vehicle is crossing.";
+    if (match.phase === "fail") return "Time ran out before every vehicle crossed.";
+    if (match.phase === "report") return "Done. Every span carried its load within its strength.";
+    if (match.toast && match.toast.indexOf("flood") !== -1) return match.toast + " Wait, or build a support that stays up after the flood.";
+    if (!plan) return "Choose a bridge below. Then compare the van's load with each span's strength.";
+    if (!live) return "Choose a bridge.";
+    if (level.id === 3) return guideLevel3(match, live);
+    var over = live.sections.filter(function (section) { return section.demand > section.capacity; });
+    if (!over.length) return "Every span can hold this vehicle. Press Send.";
+    over.sort(function (a, b) { return b.demand - b.capacity - (a.demand - a.capacity); });
+    var top = over[0];
+    var fact = placeName(top.id) + " span: load " + top.demand + ", strength " + top.capacity + ". ";
+    if (match.installed.indexOf("center-clamp") !== -1 && top.id === "east") {
+      return fact + "The center post adds strength only at the center, so the east support is unchanged.";
+    }
+    if (match.installed.indexOf("west-knee") !== -1 && top.id === "center") {
+      return fact + "The west brace adds strength only on the west span, so the center is unchanged.";
+    }
+    if (top.capacity === 0) return fact + "This support has no strength left. The flood removed the temporary work.";
+    if (level.id === 2) return fact + "Drag the center post onto the center span, or split the cargo into two lighter trucks.";
+    return fact + "Drag a post onto the red span. A post adds strength only where you drop it.";
+  }
+
+  function addedStrength(plan, installed, stage, sectionId) {
+    var full = Model.capacities(plan.supports, installed, stage);
+    var base = Model.capacities(plan.supports.filter(function (support) { return support.builtIn; }), [], stage);
+    return full[sectionId] - base[sectionId];
+  }
+
+  function supportAdd(support) {
+    var total = 0;
+    ["west", "center", "east"].forEach(function (id) { total += support.capacity[id] || 0; });
+    return total;
+  }
+
+  function guideLevel3(match, live) {
+    var vehicle = Rules.activeVehicle(match);
+    var name = shortName(vehicle.id, vehicle.name);
+    if (!live.passed) {
+      var weak = live.sections.filter(function (section) { return section.demand > section.capacity; })[0];
+      return "Drag a material onto " + placeName(weak.id) + ". Load " + weak.demand + " is above strength " + weak.capacity + ".";
+    }
+    return name + " can cross. Press Send.";
+  }
+
+  function readout(live, match, plan, stage) {
+    if (!live) return "";
+    return "<div class=\"readout\">" + live.sections.map(function (section) {
+      var bad = section.demand > section.capacity;
+      var extra = "";
+      if (plan && match.levelId === 3) {
+        var added = addedStrength(plan, match.installed, stage, section.id);
+        if (added) extra = " (+" + added + ")";
+      }
+      return "<span class=\"" + (bad ? "bad" : "") + "\"><b>" + placeName(section.id) + "</b><small>load " + section.demand + " · strength " + section.capacity + extra + "</small></span>";
+    }).join("") + "</div>";
+  }
+
   function play(match, progress) {
     var level = Levels.getLevel(match.levelId);
     var plan = Rules.blueprint(match);
@@ -196,20 +324,63 @@
     var overlay = "";
     if (match.phase === "report") {
       var more = match.mode === "mission" && match.levelId < 3;
-      overlay = "<div class=\"veil\"><button type=\"button\" class=\"primary\" data-action=\"finish\" data-focus=\"finish\">" + (more ? "下一关" : "完成") + "</button></div>";
+      overlay = "<div class=\"veil\"><button type=\"button\" class=\"primary\" data-action=\"finish\" data-focus=\"finish\">" + (more ? "Next" : "Finish") + "</button></div>";
     }
     if (match.phase === "fail") {
-      overlay = "<div class=\"veil\"><button type=\"button\" class=\"primary\" data-action=\"retry\" data-focus=\"retry\">再来</button></div>";
+      overlay = "<div class=\"veil\"><button type=\"button\" class=\"primary\" data-action=\"retry\" data-focus=\"retry\">Try again</button></div>";
     }
     var toast = match.toast ? "<p class=\"toast\" role=\"status\">" + esc(match.toast) + "</p>" : "";
     return "<main id=\"main\" class=\"stage\" tabindex=\"-1\">" +
       hud(match, level, progress) +
+      "<p class=\"rule\">A span holds when its load is less than or equal to its strength.</p>" +
+      "<p class=\"guide\" role=\"status\">" + esc(guideLine(match, level, plan, live)) + "</p>" +
       "<div class=\"stage-map\">" +
       map(match, level, plan, live, stage) +
+      readout(live, match, plan, stage) +
       toast + overlay +
       "</div>" +
+      sendButton(match) +
+      (level.id === 3 ? "" : tray(match, level, plan)) +
+      (level.id === 3 ? "" : knowledgeCards(match, level)) +
       dock(match, level, ended) +
+      level3Dock(match, level) +
       "</main>";
+  }
+
+  function sendButton(match) {
+    if (!match || match.phase !== "play") return "";
+    var active = Rules.activeVehicle(match);
+    if (!active || active.status !== "waiting") return "";
+    return "<button type=\"button\" class=\"primary send-cross\" data-action=\"drive\" data-id=\"" + esc(active.id) + "\" data-focus=\"send\">Send " + esc(shortName(active.id)) + "</button>";
+  }
+
+  function tray(match, level, plan) {
+    if (!plan || match.phase !== "play") return "";
+    var pieces = plan.supports.filter(function (support) { return !support.builtIn; }).map(function (support) {
+      var installed = match.installed.indexOf(support.id) !== -1;
+      var add = supportAdd(support);
+      var action = installed ? "remove" : "install";
+      var drag = installed ? "" : " data-drag=\"support\" data-add=\"" + add + "\" data-section=\"" + support.section + "\"";
+      return "<button type=\"button\" class=\"token" + (installed ? " is-used" : "") + "\"" + drag + " data-action=\"" + action + "\" data-id=\"" + esc(support.id) + "\" aria-label=\"" + esc(shortName(support.id)) + " +" + add + "\">" +
+        "<b>+" + add + "</b><small>" + placeName(support.section) + "</small></button>";
+    }).join("");
+    if (!pieces) return "";
+    return "<section class=\"toolbox\"><h2>Toolbox</h2><div class=\"basket\">" + pieces + "</div></section>";
+  }
+
+  function knowledgeCards(match, level) {
+    if (match.phase === "animating") return "";
+    var deck = [
+      { id: "load", title: "Load", body: "Load is the weight this vehicle puts on one span." },
+      { id: "strength", title: "Strength", body: "A span holds when its load is less than or equal to its strength." },
+      { id: "local", title: "One span", body: "A post adds strength only on the span where you drop it." }
+    ];
+    if (level.id === 2) deck.push({ id: "split", title: "Two trucks", body: "Two lighter trucks put less load on each span than one heavy truck." });
+    if (level.id === 3) deck.push({ id: "temp", title: "Wood and stone", body: "Wood adds strength only until the flood. Stone is still there afterward, and only on the span where you place it." });
+    return "<div class=\"cards\">" + deck.map(function (card) {
+      var open = match.openCard === card.id ? " is-open" : "";
+      return "<button type=\"button\" class=\"card" + open + "\" data-action=\"card\" data-id=\"" + card.id + "\"><b>" + card.title + "</b><small>" + card.body + "</small></button>";
+    }).join("") + "</div>";
   }
 
   function hud(match, level, progress) {
@@ -218,39 +389,50 @@
     for (i = 0; i < match.startMaterials; i += 1) {
       beams += "<i class=\"beam" + (i < match.materials ? "" : " spent") + "\"></i>";
     }
-    var gauge = "";
-    if (level.turnMode === "clock") {
-      var span = Math.max(1, level.floodTurn - 1);
-      var filled = Math.max(0, Math.min(100, Math.round((match.turn - 1) / span * 100)));
-      gauge = "<span class=\"gauge\" aria-label=\"水位\"><i class=\"" + (match.turn >= level.floodTurn ? "warn" : "") + "\" style=\"width:" + filled + "%\"></i></span>";
-    } else {
-      var pips = "";
-      for (i = 0; i < level.budget; i += 1) {
-        pips += "<i" + (i < match.turnsLeft ? "" : " class=\"spent\"") + "></i>";
-      }
-      gauge = "<span class=\"pips\" aria-label=\"剩余次数\">" + pips + "</span>";
-    }
     var other = "";
     if (level.blueprints.length > 1 && Rules.blueprint(match) && match.phase === "play") {
       var alt = level.blueprints.filter(function (item) { return item.id !== match.blueprintId; })[0];
-      other = "<button type=\"button\" class=\"icon-btn\" data-action=\"blueprint\" data-id=\"" + esc(alt.id) + "\" data-focus=\"swap\" aria-label=\"" + esc(shortName(alt.id, alt.name)) + "\">换</button>";
+      other = "<button type=\"button\" class=\"icon-btn\" data-action=\"blueprint\" data-id=\"" + esc(alt.id) + "\" data-focus=\"swap\" aria-label=\"Switch to " + esc(shortName(alt.id, alt.name)) + "\">" + esc(shortName(alt.id, alt.name)) + "</button>";
     }
-    return "<div class=\"hud\"><a class=\"icon-btn\" href=\"#/\" aria-label=\"首页\">←</a>" +
-      "<span class=\"beams\" aria-label=\"木料\">" + beams + "</span>" +
-      gauge +
+    return "<div class=\"hud\"><a class=\"icon-btn\" href=\"#/\" aria-label=\"Title\">Menu</a>" +
+      "<span class=\"hud-stat\"><em>Materials</em><span class=\"beams\" aria-label=\"Materials\">" + beams + "</span></span>" +
       "<b class=\"level-pip\">" + level.id + "</b>" +
       other +
-      "<button type=\"button\" class=\"icon-btn\" data-action=\"mute\" data-focus=\"mute\" aria-label=\"声音\">" + (progress.mute ? "静" : "声") + "</button></div>";
+      "<button type=\"button\" class=\"icon-btn\" data-action=\"mute\" data-focus=\"mute\" aria-label=\"Sound\">" + (progress.mute ? "Sound off" : "Sound") + "</button></div>";
   }
 
   function dock(match, level, ended) {
     if (ended || match.phase === "animating" || !level.split) return "";
     if (!match.splitOpen) {
-      return "<div class=\"dock\"><button type=\"button\" class=\"icon-btn split\" data-action=\"split\" data-focus=\"split\" aria-label=\"拆成两辆\"><i></i><i></i></button></div>";
+      return "<div class=\"dock\"><button type=\"button\" class=\"icon-btn split\" data-action=\"split\" data-focus=\"split\">Split into two lighter trucks</button></div>";
     }
     var sent = match.vehicles.some(function (vehicle) { return vehicle.status === "released"; });
     if (sent) return "";
-    return "<div class=\"dock\"><button type=\"button\" class=\"icon-btn\" data-action=\"recombine\" data-focus=\"recombine\" aria-label=\"合回一辆\">合</button></div>";
+    return "<div class=\"dock\"><button type=\"button\" class=\"icon-btn\" data-action=\"recombine\" data-focus=\"recombine\">Put the cargo back on one truck</button></div>";
+  }
+
+  function level3Dock(match, level) {
+    if (level.id !== 3 || match.phase !== "play") return "";
+    var plan = Rules.blueprint(match);
+    if (!plan) return "";
+    var stage = Rules.visualStage(match);
+    var tokens = plan.supports.filter(function (support) { return !support.builtIn; }).map(function (support) {
+      var installed = match.installed.indexOf(support.id) !== -1;
+      var washed = support.temporary && stage === "flood";
+      var add = supportAdd(support);
+      var kind = support.temporary ? "wood" : "stone";
+      var action = installed && !washed ? "remove" : "install";
+      var blocked = washed || (!installed && support.temporary && stage === "flood") ? " data-blocked=\"1\" aria-disabled=\"true\"" : "";
+      var drag = !installed && !washed ? " data-drag=\"support\" data-add=\"" + add + "\" data-section=\"" + support.section + "\"" : "";
+      var used = installed || washed ? " is-used" : "";
+      var label = washed ? "0" : "+" + add;
+      return "<button type=\"button\" class=\"token " + kind + used + "\"" + drag + " data-action=\"" + action + "\" data-id=\"" + esc(support.id) + "\" data-focus=\"build-" + esc(support.id) + "\"" + blocked + " aria-label=\"" + kind + " " + label + " " + placeName(support.section) + "\">" +
+        "<i class=\"swatch\"></i><b>" + label + "</b><small>" + placeName(support.section) + "</small></button>";
+    }).join("");
+    var flood = !match.floodApplied
+      ? "<button type=\"button\" class=\"token flood\" data-drag=\"flood\" data-action=\"flood\" aria-label=\"Flood\"><i class=\"swatch\"></i><b>Flood</b></button>"
+      : "";
+    return "<section class=\"toolbox\"><h2>Toolbox</h2><div class=\"basket\">" + tokens + flood + "</div></section>";
   }
 
   function meter(label, value) {
@@ -395,7 +577,7 @@
       var fill = found ? colors[found.status] : colors.none;
       var hot = found && found.status === "overload";
       var width = deck[id][1] - deck[id][0];
-      sections += "<g class=\"" + (hot ? "deck-hot" : "") + "\" style=\"pointer-events:none\">";
+      sections += "<g class=\"" + (hot ? "deck-hot" : "") + "\">";
       sections += "<rect x=\"" + deck[id][0] + "\" y=\"168\" width=\"" + width + "\" height=\"18\" fill=\"" + fill + "\" stroke=\"#1b1712\"></rect>";
       if (found && found.capacity > 0) {
         var ratio = Math.min(1.35, found.demand / found.capacity);
@@ -403,7 +585,13 @@
         sections += "<rect x=\"" + (deck[id][0] + 18) + "\" y=\"" + (164 - barH) + "\" width=\"" + (width - 36) + "\" height=\"" + barH + "\" fill=\"" + fill + "\" opacity=\"0.9\"></rect>";
       }
       if (hot) {
-        sections += "<path class=\"hatch\" d=\"M" + (deck[id][0] + 10) + " 168 l16 18 M" + (deck[id][0] + 36) + " 168 l16 18 M" + (deck[id][0] + 62) + " 168 l16 18\" stroke=\"#f4ecdc\" stroke-width=\"2\"></path>";
+        sections += "<path class=\"hatch\" d=\"M" + (deck[id][0] + 10) + " 168 l16 18 M" + (deck[id][0] + 36) + " 168 l16 18 M" + (deck[id][0] + 62) + " 168 l16 18\" stroke=\"#f4ecdc\" stroke-width=\"2\" pointer-events=\"none\"></path>";
+      }
+      if (level.id === 3) {
+        sections += "<text x=\"" + (deck[id][0] + width / 2) + "\" y=\"122\" text-anchor=\"middle\" font-size=\"15\" font-weight=\"700\" fill=\"#1b1712\" pointer-events=\"none\">" + placeName(id) + "</text>";
+      }
+      if (match.phase === "play") {
+        sections += "<rect data-drop=\"span\" data-section=\"" + id + "\" x=\"" + deck[id][0] + "\" y=\"130\" width=\"" + width + "\" height=\"70\" fill=\"transparent\"></rect>";
       }
       sections += "</g>";
     });
@@ -422,13 +610,22 @@
         var clickable = !support.builtIn && match.phase === "play";
         var action = installed && !support.builtIn ? "remove" : "install";
         if (clickable) {
-          piers += "<g class=\"pier\" tabindex=\"0\" role=\"button\" data-action=\"" + action + "\" data-id=\"" + esc(support.id) + "\" data-focus=\"map-" + esc(support.id) + "\" aria-label=\"" + esc((installed ? "拆掉" : "装上") + shortName(support.id, support.name)) + "\">";
+          var dragAttr = action === "install" ? " data-drag=\"support\" data-section=\"" + support.section + "\"" : "";
+          piers += "<g class=\"pier\" tabindex=\"0\" role=\"button\"" + dragAttr + " data-action=\"" + action + "\" data-id=\"" + esc(support.id) + "\" data-focus=\"map-" + esc(support.id) + "\" aria-label=\"" + esc((installed ? "Remove " : "Add ") + shortName(support.id, support.name)) + "\">";
         } else piers += "<g class=\"pier\" style=\"pointer-events:none\">";
+        var pierFill = "none";
+        if (washed) pierFill = "#8aa0ad";
+        else if (installed && level.id === 3 && support.temporary) pierFill = "#c4a574";
+        else if (installed && level.id === 3 && !support.builtIn) pierFill = "#3e4c57";
+        else if (installed) pierFill = "#6b5436";
         if (clickable) piers += "<rect x=\"" + (x - 8) + "\" y=\"160\" width=\"40\" height=\"110\" fill=\"transparent\"></rect>";
-        piers += "<rect x=\"" + x + "\" y=\"186\" width=\"22\" height=\"70\" fill=\"" + (washed ? "#8aa0ad" : installed ? "#6b5436" : "none") + "\" stroke=\"#1b1712\" stroke-width=\"2\" stroke-dasharray=\"" + (support.temporary ? "4 3" : "0") + "\"></rect>";
+        piers += "<rect x=\"" + x + "\" y=\"186\" width=\"22\" height=\"70\" fill=\"" + pierFill + "\" stroke=\"#1b1712\" stroke-width=\"2\" stroke-dasharray=\"" + (support.temporary ? "4 3" : "0") + "\"></rect>";
         if (washed) piers += "<path d=\"M" + x + " 190 l22 62 M" + (x + 22) + " 190 l-22 62\" stroke=\"#9d2c22\" stroke-width=\"3\"></path>";
         if (!support.builtIn && !installed && !washed && match.phase === "play") {
-          piers += "<text class=\"plus\" x=\"" + (x + 3) + "\" y=\"230\" font-size=\"32\" font-weight=\"700\" fill=\"#ffb703\" stroke=\"#1b1712\" stroke-width=\"1\" pointer-events=\"none\">+</text>";
+          piers += "<text class=\"plus\" x=\"" + (x + 3) + "\" y=\"220\" font-size=\"32\" font-weight=\"700\" fill=\"#ffb703\" stroke=\"#1b1712\" stroke-width=\"1\" pointer-events=\"none\">+</text>";
+        }
+        if (level.id === 3 && !support.builtIn && installed && !washed) {
+          piers += "<text x=\"" + (x - 4) + "\" y=\"272\" font-size=\"16\" font-weight=\"700\" fill=\"#ffb703\" pointer-events=\"none\">+" + supportAdd(support) + "</text>";
         }
         piers += "</g>";
       });
@@ -448,7 +645,7 @@
           drive: match.phase === "play" && vehicle.status === "waiting"
         });
       } else if (vehicle.status === "waiting") {
-        trucks += truck(vehicle, 12, 92 + queue * 34, { drive: match.phase === "play", small: true });
+        trucks += truck(vehicle, 12, 92 + queue * 34, { pick: match.phase === "play", small: true });
         queue += 1;
       } else {
         trucks += truck(vehicle, 640, 96 + park * 30, {});
@@ -464,20 +661,25 @@
     }
     var planChoices = "";
     if (!plan && match.phase === "play") {
+      var blurbs = {
+        timber: "East strength is low for this van",
+        steel: "Higher strength on every span"
+      };
       planChoices = "<div class=\"choices\">" + level.blueprints.map(function (item) {
-        return "<button type=\"button\" class=\"choice-card\" data-action=\"blueprint\" data-id=\"" + esc(item.id) + "\" data-focus=\"map-plan-" + esc(item.id) + "\" aria-label=\"" + esc(shortName(item.id, item.name)) + "\">" +
-          miniBridge(item.id) + "</button>";
+        return "<button type=\"button\" class=\"choice-card\" data-action=\"blueprint\" data-id=\"" + esc(item.id) + "\" data-focus=\"map-plan-" + esc(item.id) + "\">" +
+          miniBridge(item.id) + "<b>" + esc(shortName(item.id, item.name)) + "</b><small>" + esc(blurbs[item.id] || "") + "</small></button>";
       }).join("") + "</div>";
     }
-    return "<div class=\"map-frame\"><svg class=\"scene" + (flood || match.toast === "水要涨" ? " is-flood" : "") + "\" viewBox=\"0 0 720 340\" role=\"group\" aria-label=\"河和桥\">" +
+    return "<div class=\"map-frame\"><svg class=\"scene" + (flood || (match.toast && match.toast.indexOf("flood") !== -1) ? " is-flood" : "") + "\" viewBox=\"0 0 720 340\" role=\"group\" aria-label=\"River and bridge\">" +
       "<rect width=\"720\" height=\"320\" fill=\"#efe4cf\"></rect>" +
       "<path d=\"M0 70 L140 48 L250 78 L390 40 L520 72 L720 46 L720 0 L0 0 Z\" fill=\"#d5dfd2\"></path>" +
       "<g class=\"rain\">" + rainLines(7) + "</g>" +
-      "<g class=\"river" + (match.toast === "水要涨" ? " surge" : "") + "\" style=\"--rise:" + rise + "px\">" +
+      "<g class=\"river" + (match.toast && match.toast.indexOf("flood") !== -1 ? " surge" : "") + "\" style=\"--rise:" + rise + "px\">" +
       "<rect class=\"water\" x=\"140\" y=\"150\" width=\"470\" height=\"130\" fill=\"" + (flood ? "#0e3f52" : "#1f6f86") + "\"></rect>" +
       "<path class=\"waves\" d=\"M140 175 H610 M140 200 H610 M140 225 H610\" fill=\"none\" stroke=\"#d7eef5\" stroke-width=\"3\" stroke-dasharray=\"18 14\"></path></g>" +
       "<rect x=\"0\" y=\"186\" width=\"150\" height=\"22\" fill=\"#8d7a55\"></rect>" +
       "<rect x=\"610\" y=\"186\" width=\"110\" height=\"22\" fill=\"#8d7a55\"></rect>" +
+      (level.id === 3 && stage !== "flood" ? "<rect data-drop=\"river\" x=\"140\" y=\"210\" width=\"470\" height=\"90\" fill=\"transparent\"></rect>" : "") +
       sections + piers + trucks +
       "</svg>" + planChoices + "</div>";
   }
@@ -500,11 +702,12 @@
     if (vehicle.id === "cart") paint = "#4d6a4a";
     if (vehicle.id === "bus") paint = "#e6c15a";
     var klass = "truck" + (opts.moving ? " is-moving" : "") + (opts.bump ? " is-bump" : "") + (opts.ready ? " is-ready" : "") + (opts.small ? " is-small" : "");
-    var open = opts.drive
-      ? "<g tabindex=\"0\" role=\"button\" data-action=\"drive\" data-id=\"" + esc(vehicle.id) + "\" data-focus=\"truck-" + esc(vehicle.id) + "\" aria-label=\"" + esc(shortName(vehicle.id, vehicle.name)) + "\">"
+    var verb = opts.drive ? "drive" : opts.pick ? "pick" : "";
+    var open = verb
+      ? "<g tabindex=\"0\" role=\"button\"" + (opts.drive ? " data-drag=\"vehicle\"" : "") + " data-action=\"" + verb + "\" data-id=\"" + esc(vehicle.id) + "\" data-focus=\"truck-" + esc(vehicle.id) + "\" aria-label=\"" + esc(shortName(vehicle.id, vehicle.name)) + "\">"
       : "<g style=\"pointer-events:none\">";
     return "<g class=\"truck-wrap\" transform=\"translate(" + x + " " + y + ")\">" + open + "<g class=\"" + klass + "\">" +
-      (opts.drive ? "<rect x=\"-8\" y=\"-8\" width=\"62\" height=\"42\" fill=\"transparent\"></rect>" : "") +
+      (verb ? "<rect x=\"-8\" y=\"-8\" width=\"62\" height=\"42\" fill=\"transparent\"></rect>" : "") +
       "<rect width=\"46\" height=\"20\" fill=\"" + paint + "\" stroke=\"#1b1712\"></rect>" +
       "<rect x=\"30\" y=\"4\" width=\"16\" height=\"14\" fill=\"#d9d3c6\" stroke=\"#1b1712\"></rect>" +
       "<g class=\"wheel\"><circle cx=\"12\" cy=\"22\" r=\"4\" fill=\"#1b1712\"></circle></g>" +
@@ -517,8 +720,9 @@
     if (ctx.page === "course") return course();
     if (ctx.page === "guide") return guide();
     if (ctx.page === "locked") return locked(ctx.lockedId);
+    if (ctx.page === "story") return storyScreen(ctx.story || 0);
     if (ctx.page === "play" && ctx.match) return play(ctx.match, ctx.progress);
-    return home(ctx.progress);
+    return titleScreen(ctx.progress, ctx.about);
   }
 
   return { render: render };

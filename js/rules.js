@@ -140,6 +140,12 @@
 
   function checkPay(state, turns, materials) {
     var level = levelOf(state);
+    if (state.freePlay) {
+      if (materials > state.materials) {
+        return { error: "Not enough kits. This action needs " + materials + " and you have " + state.materials + "." };
+      }
+      return null;
+    }
     if (materials > state.materials) {
       return { error: "Not enough kits. This action needs " + materials + " and you have " + state.materials + "." };
     }
@@ -161,6 +167,11 @@
     var spent = Model.spend(state.materials, materials);
     if (!spent.ok) throw new Error(spent.error);
     state.materials = spent.value;
+    if (state.freePlay) {
+      assertResources(state);
+      pushLog(state, label, state.turn);
+      return;
+    }
     if (level.turnMode === "budget") {
       var turnsSpent = Model.spend(state.turnsLeft, turns);
       if (!turnsSpent.ok) throw new Error(turnsSpent.error);
@@ -593,6 +604,21 @@
     return ok(next, after !== before ? "flood" : "click", next.caption);
   }
 
+  function raiseFlood(state) {
+    var next = clone(state);
+    var block = busy(next);
+    if (block) return fail(block);
+    var level = levelOf(next);
+    if (!level.floodTurn) return fail("This mission has no flood.");
+    if (next.floodApplied) return fail("The flood is already here.");
+    next.turn = level.floodTurn;
+    syncFlood(next);
+    next.message = "The flood is here. Dashed posts add no strength.";
+    next.messageTone = "bad";
+    next.caption = "Flood tone. Temporary supports are out.";
+    return ok(next, "flood", next.caption);
+  }
+
   function release(state) {
     var next = clone(state);
     var block = busy(next);
@@ -609,7 +635,7 @@
     }
     if (!next.lastTest.passed) return fail("This vehicle has not passed the current test.");
     var window = Model.actionWindow(next.turn, level.releaseCost, level.floodTurn, level.deadlineTurn);
-    if (level.turnMode === "clock" && window.straddles) {
+    if (!next.freePlay && level.turnMode === "clock" && window.straddles) {
       return fail("Release blocked. The crossing would use turns " + window.start + "–" + window.end + ", and the flood at the start of turn " + level.floodTurn + " would change the supports while the " + vehicle.name + " is still on the bridge. The current test cannot authorize that crossing.");
     }
     var rejected = rejectPay(next, checkPay(next, level.releaseCost, 0));
@@ -655,7 +681,7 @@
     }
     next.messageTone = "good";
     next.caption = "Success tone. " + vehicle.name + " crossed.";
-    if (levelOf(next).turnMode === "clock" && next.turn >= levelOf(next).deadlineTurn) closeForTime(next);
+    if (!next.freePlay && levelOf(next).turnMode === "clock" && next.turn >= levelOf(next).deadlineTurn) closeForTime(next);
     return ok(next, "success", next.caption);
   }
 
@@ -922,6 +948,7 @@
     splitLoad: splitLoad,
     recombine: recombine,
     waitTurn: waitTurn,
+    raiseFlood: raiseFlood,
     release: release,
     finishRelease: finishRelease,
     submitAnswer: submitAnswer,
