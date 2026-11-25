@@ -180,6 +180,36 @@
         { id: "cart", name: "Supply cart", load: 9, demands: { west: 5, center: 7, east: 4 }, note: "Passes the starting bridge before the flood." },
         { id: "bus", name: "Evac bus", load: 12, demands: { west: 6, center: 10, east: 8 }, note: "Overloads the starting center and east ratings." }
       ]
+    },
+    {
+      id: 4,
+      code: "Open Channel",
+      difficulty: "Hard",
+      mission: "The channel must stay open. Strengthen the long deck with truss triangles.",
+      requirePrediction: false,
+      turnMode: "budget",
+      budget: 8,
+      materials: 4,
+      floodTurn: null,
+      deadlineTurn: null,
+      testCost: 1,
+      releaseCost: 2,
+      waitCost: 1,
+      radio: "The channel has to stay clear. Do not put a post in the water. A triangle strengthens only the span beneath it.",
+      brief: ["The flat deck is one long beam. Its capacity is 3. Each triangle adds 7 to the part it is placed under."],
+      coop: "Say which part is the critical section before you place a triangle.",
+      sections: sections,
+      blueprints: [
+        {
+          id: "channel",
+          name: "Open deck",
+          detail: "One beam from bank to bank. The channel stays clear.",
+          supports: []
+        }
+      ],
+      vehicles: [
+        { id: "crane", name: "Crane truck", load: 16, demands: { west: 8, center: 16, east: 8 }, note: "Heaviest at the center. The channel cannot take a post." }
+      ]
     }
   ];
 
